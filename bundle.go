@@ -58,8 +58,8 @@ func (b *Bundle) Run(pkg string, symbols []string, outDir string) error {
 	return b.RunFunc(outDir, models)
 }
 
-// DefaultApp returns default flag configuration for bundled apps
-func DefaultApp(name string, bundle *Bundle) *cli.App {
+// CreateDefaultApp returns default flag configuration for bundled apps
+func (b *Bundle) CreateDefaultApp(name string) *cli.App {
 	app := cli.NewApp()
 	app.Name = name
 	app.Flags = []cli.Flag{
@@ -79,7 +79,7 @@ func DefaultApp(name string, bundle *Bundle) *cli.App {
 		},
 	}
 	app.Action = func(c *cli.Context) error {
-		return bundle.Run(
+		return b.Run(
 			c.String("pkg"),
 			c.StringSlice("models"),
 			c.String("out"),
@@ -90,6 +90,6 @@ func DefaultApp(name string, bundle *Bundle) *cli.App {
 }
 
 // RunDefaultApp will automatically run the defaultly bundled application
-func RunDefaultApp(name string, bundle *Bundle) error {
-	return DefaultApp(name, bundle).Run(os.Args)
+func (b *Bundle) RunDefaultApp(name string) error {
+	return b.CreateDefaultApp(name).Run(os.Args)
 }

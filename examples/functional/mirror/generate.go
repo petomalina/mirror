@@ -22,11 +22,11 @@ func (us _T_Slice) Map(cb _T_MapCallback) _T_Slice {
 `
 
 func main() {
-	err := mirror.RunDefaultApp("mirror-functional", &mirror.Bundle{
+	bundle := &mirror.Bundle{
 		RunFunc: ProcessModel,
-	})
+	}
 
-	if err != nil {
+	if err := bundle.RunDefaultApp("mirror-functional"); err != nil {
 		log.Fatal(err)
 	}
 }
