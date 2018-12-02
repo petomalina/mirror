@@ -2,7 +2,10 @@ package main
 
 import (
 	"github.com/petomalina/mirror"
-	"github.com/petomalina/mirror/examples/functional"
+	"github.com/urfave/cli"
+	"log"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -21,23 +24,43 @@ func (us _T_Slice) Map(cb _T_MapCallback) _T_Slice {
 `
 
 func main() {
-	user := mirror.ReflectStruct(functional.User{})
+	app := cli.NewApp()
+	app.Name = "functional-generator"
+	app.Usage = "generates map/filter/reduce for input models"
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "pkg, p",
+			Value: ".",
+			Usage: "Package to be used for model determination",
+		},
+		cli.StringSliceFlag{
+			Name:  "models, m",
+			Usage: "Models that should be considered when generating",
+		},
+		cli.StringFlag{
+			Name:  "out, o",
+			Value: ".",
+			Usage: "Directory for the generated files to be saved in",
+		},
+	}
+	app.Action = func(c *cli.Context) error {
+		bundle := &mirror.Bundle{}
+		return bundle.Run("", []string{}, "", func(outDir string, models []interface{}) error {
+			out := mirror.File(filepath.Join(outDir, "functional.go"))
+			blocks := []string{}
 
-	out := mirror.File("functional.go")
+			for _, m := range models {
+				str := mirror.ReflectStruct(m)
 
-	blocks := []string{}
-	blocks = append(blocks, strings.Replace(mapTemplate, "_T_", user.Name(), -1))
+				blocks = append(blocks, strings.Replace(mapTemplate, "_T_", str.Name(), -1))
+			}
 
-	//for fName, fType := range user.Fields() {
-	//	// if the type is from the same package, trim the package name
-	//	// e.g. functional.Email will become Email
-	//	fType = strings.TrimPrefix(fType, mirror.Package()+".")
-	//
-	//	blocks = append(blocks, strings.Replace(mapTemplate, "_T_", fName, -1))
-	//}
+			return out.Write(blocks...)
+		})
+	}
 
-	err := out.Write(blocks...)
+	err := app.Run(os.Args)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
