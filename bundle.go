@@ -2,6 +2,7 @@ package mirror
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"math/rand"
 	"os"
@@ -69,6 +70,12 @@ func (b *Bundle) Run(pkg string, symbols []string, outDir string) error {
 
 // CreateDefaultApp returns default flag configuration for bundled apps
 func (b *Bundle) CreateDefaultApp(name string) *cli.App {
+	// override the version flag so we can use -v for verbosity
+	cli.VersionFlag = cli.BoolFlag{
+		Name:  "version",
+		Usage: "Prints the version of the cli",
+	}
+
 	app := cli.NewApp()
 	app.Name = name
 	app.Flags = []cli.Flag{
@@ -86,9 +93,24 @@ func (b *Bundle) CreateDefaultApp(name string) *cli.App {
 			Value: ".",
 			Usage: "Directory for the generated files to be saved in",
 		},
+		cli.StringFlag{
+			Name:   "verbosity, v",
+			Value:  "info",
+			Usage:  "Sets the logging level for the bundle",
+			EnvVar: "MIRROR_LOG_LEVEL",
+		},
 	}
 	app.Action = func(c *cli.Context) error {
-		err := b.Run(
+		logLevel, err := logrus.ParseLevel(c.String("verbosity"))
+		if err != nil {
+			L.
+				Method("Bundle", "CreateDefaultApp").
+				Errorln("An error occured when parsing log level: ", err.Error())
+			return err
+		}
+		L.SetLevel(logLevel)
+
+		err = b.Run(
 			c.String("pkg"),
 			c.StringSlice("models"),
 			c.String("out"),
