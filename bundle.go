@@ -85,8 +85,9 @@ func (b *Bundle) CreateDefaultApp(name string) *cli.App {
 			Usage: "Package to be used for model determination",
 		},
 		cli.StringSliceFlag{
-			Name:  "models, m",
-			Usage: "Models that should be considered when generating",
+			Name:   "models, m",
+			Usage:  "Models that should be considered when generating",
+			EnvVar: "MIRROR_MODELS",
 		},
 		cli.StringFlag{
 			Name:  "out, o",
