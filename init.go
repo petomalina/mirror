@@ -33,12 +33,19 @@ func init() {
 	L.SetFormatter(&logrus.TextFormatter{})
 }
 
+// Method creates a log entry with predefined fields for the
+// caller Object and Method name. Additionaly, it will save the
+// caller's method file and it's line if Trace is enabled
 func (l *Logger) Method(obj, method string) *logrus.Entry {
-	_, callerFile, callerLine, _ := runtime.Caller(0)
-
-	return l.WithFields(logrus.Fields{
+	ff := Fields{
 		"Object": obj,
 		"Method": method,
-		"Caller": fmt.Sprintf("%s:%d", callerFile, callerLine),
-	})
+	}
+
+	if l.Level == logrus.TraceLevel {
+		_, callerFile, callerLine, _ := runtime.Caller(0)
+		ff["Caller"] = fmt.Sprintf("%s:%d", callerFile, callerLine)
+	}
+
+	return l.WithFields(ff)
 }
