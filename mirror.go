@@ -2,14 +2,17 @@ package mirror
 
 import (
 	"reflect"
+	"strings"
 )
 
 type Struct struct {
-	Ref reflect.Value
+	Ref interface{}
 }
 
 func ReflectStruct(s interface{}) *Struct {
-	return &Struct{reflect.ValueOf(s)}
+	return &Struct{
+		s,
+	}
 }
 
 func ReflectStructs(ss ...interface{}) []*Struct {
@@ -23,7 +26,15 @@ func ReflectStructs(ss ...interface{}) []*Struct {
 }
 
 func (s *Struct) Name() string {
-	return s.Ref.Type().Name()
+	name := reflect.TypeOf(s.Ref).String()
+
+	// strip the package prefix, as we don't want it explicitly in the name
+	pkgStrip := strings.Split(name, ".")
+	if len(pkgStrip) > 1 {
+		return pkgStrip[1]
+	}
+
+	return pkgStrip[0]
 }
 
 // Fields returns a map of Name:Type pairs which can be used
@@ -53,13 +64,15 @@ type RawStructFieldType struct {
 func (s *Struct) RawFields() []RawStructFieldType {
 	rf := []RawStructFieldType{}
 
-	num := s.Ref.NumField()
+	sValue := reflect.ValueOf(s)
+
+	num := sValue.NumField()
 	for i := 0; i < num; i++ {
-		v := s.Ref.Field(i)
+		v := sValue.Field(i)
 
 		rf = append(rf, RawStructFieldType{
-			Field: s.Ref.Type().Field(i),
-			Typ: v.Type(),
+			Field: sValue.Type().Field(i),
+			Typ:   v.Type(),
 		})
 	}
 
