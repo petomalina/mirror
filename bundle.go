@@ -24,10 +24,13 @@ func (b *Bundle) Run(pkg string, symbols []string, outDir string) error {
 	objPath := fmt.Sprintf("mirror-%d.so", uniq)
 
 	// create the plugin from the passed package
-	cmd := exec.Command("go", "build", "-buildmode=plugin", "-o="+objPath, pkg)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	if err := cmd.Run(); err != nil {
+	err := WithChangedPackage(pkg, "main", func() error {
+		cmd := exec.Command("go", "build", "-buildmode=plugin", "-o="+objPath, pkg)
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		return cmd.Run()
+	})
+	if err != nil {
 		return err
 	}
 

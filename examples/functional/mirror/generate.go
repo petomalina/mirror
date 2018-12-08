@@ -35,10 +35,8 @@ func ProcessModel(outDir string, models []interface{}) error {
 	out := mirror.File(filepath.Join(outDir, "functional.go"))
 	blocks := []string{}
 
-	for _, m := range models {
-		str := mirror.ReflectStruct(m)
-
-		blocks = append(blocks, strings.Replace(mapTemplate, "_T_", str.Name(), -1))
+	for _, rs := range mirror.ReflectStructs(models...) {
+		blocks = append(blocks, strings.Replace(mapTemplate, "_T_", rs.Name(), -1))
 	}
 
 	return out.Write(blocks...)
