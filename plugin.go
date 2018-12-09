@@ -12,10 +12,11 @@ import (
 // BuildPlugin builds the given package into plugin and saves it in
 // current path under a random name .so, returning the name to the caller
 func BuildPlugin(pkg string) (string, error) {
+	L.Method("Internal/plugin", "BuildPlugin").Trace("Invoked with pkg: ", pkg)
 	// random file name so we'll get unique loader each time
 	uniq := rand.Int()
 
-	objPath := fmt.Sprintf("mirror-%d.so", uniq)
+	objPath := fmt.Sprintf(".mirror/mirror-%d.so", uniq)
 	L.Method("Bundle", "Run").Trace("Object path: ", objPath)
 
 	// create the plugin from the passed package
@@ -89,25 +90,6 @@ func WithChangedPackage(pkg, desiredPkgName string, run func() error) error {
 		}
 	}
 
-	if err = run(); err != nil {
-		return err
-	}
-
-	// replace back to the original package names
-	for _, f := range goFiles {
-		err = ioutil.WriteFile(
-			f,
-			[]byte(pkgRegex.ReplaceAll(
-				fileContents[f].content,
-				append([]byte("package "), fileContents[f].originalPkgName...),
-			)),
-			0,
-		)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	L.Method("Internal/package", "WithChangedPackage").Trace("Running the enclosed function")
+	return run()
 }

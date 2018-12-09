@@ -17,12 +17,29 @@ type BundleRunFunc func(outDir string, models []interface{}) error
 func (b *Bundle) Run(pkg string, symbols []string, outDir string) error {
 	L.Method("Bundle", "Run").Trace("Invoked, should load: ", symbols)
 
-	objPath, err := BuildPlugin(pkg)
+	// copy to the cache dir
+	pkgCacheDir, err := copyPackageToCache(pkg)
+	if err != nil {
+		return err
+	}
+
+	// remove the cache dir once we are done
+	defer func(dir string) {
+		L.Method("Bundle", "Run").Trace("Removing cache dir: ", dir)
+		if err := os.RemoveAll(dir); err != nil {
+			L.Method("Bundle", "Run").Warn("An error occurred when removing cache dir: " + dir)
+		}
+	}(pkgCacheDir)
+
+	L.Method("Bundle", "Run").Trace("Building the plugin: ", pkgCacheDir)
+	objPath, err := BuildPlugin(pkgCacheDir)
 	if err != nil {
 		return err
 	}
 
 	// remove the object model when we are done
+	// this object resides in the .mirror folder, that's why it's not
+	// cleared by the copy cleaner
 	defer func(oPath string) {
 		L.Method("Bundle", "Run").Trace("Removing object model: ", oPath)
 		if err := os.Remove(oPath); err != nil {
@@ -79,7 +96,7 @@ func (b *Bundle) CreateDefaultApp(name string) *cli.App {
 		if err != nil {
 			L.
 				Method("Bundle", "CreateDefaultApp").
-				Errorln("An error occured when parsing log level: ", err.Error())
+				Errorln("An error occurred when parsing log level: ", err.Error())
 			return err
 		}
 		L.SetLevel(logLevel)
@@ -93,7 +110,7 @@ func (b *Bundle) CreateDefaultApp(name string) *cli.App {
 		if err != nil {
 			L.
 				Method("Bundle", "CreateDefaultApp").
-				Errorln("An error occured when running the generator: ", err.Error())
+				Errorln("An error occurred when running the generator: ", err.Error())
 		}
 
 		return err

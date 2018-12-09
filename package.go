@@ -2,7 +2,9 @@ package mirror
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -60,6 +62,8 @@ func listGoFiles(dir string) ([]string, error) {
 	return ff, nil
 }
 
+// readFilesAndPackages accepts a set of filtered Go files,
+// reads them and caches their contents with their package names
 func readFilesAndPackages(ff []string) (map[string]changedFileContent, error) {
 	changes := map[string]changedFileContent{}
 
@@ -90,4 +94,17 @@ func readFilesAndPackages(ff []string) (map[string]changedFileContent, error) {
 	}
 
 	return changes, nil
+}
+
+func copyPackageToCache(pkg string) (string, error) {
+	// Copy the directory so the plugin can be build outside
+	pkgCacheDir := fmt.Sprintf("./.mirror/%d", rand.Int())
+	L.Method("Bundle", "Run").Trace("Making cache dir: ", pkgCacheDir)
+	err := os.MkdirAll(pkgCacheDir, os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	L.Method("Bundle", "Run").Trace("Copying ", pkg, "->", pkgCacheDir)
+	return pkgCacheDir, CopyDir(pkg, pkgCacheDir, false)
 }
