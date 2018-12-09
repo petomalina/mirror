@@ -9,12 +9,15 @@ type Struct struct {
 	Ref interface{}
 }
 
+// ReflectStruct creates a mirror Struct that enables users
+// to use mirror-enhanced reflections
 func ReflectStruct(s interface{}) *Struct {
 	return &Struct{
 		s,
 	}
 }
 
+// ReflectStructs is a plural function for ReflectStruct
 func ReflectStructs(ss ...interface{}) []*Struct {
 	rss := []*Struct{}
 
@@ -25,6 +28,9 @@ func ReflectStructs(ss ...interface{}) []*Struct {
 	return rss
 }
 
+// Name returns the name of an underlying type for a given reflection.
+// Note that this does not return pointer type asterixes nor
+// package names
 func (s *Struct) Name() string {
 	name := reflect.TypeOf(s.Ref).String()
 
@@ -49,6 +55,8 @@ func (s *Struct) Fields() map[string]string {
 	return ff
 }
 
+// IsInterface returns true if the reflection complies with
+// the given interface value
 func (s *Struct) IsInterface(i reflect.Type) bool {
 	return false
 }
@@ -61,10 +69,16 @@ type RawStructFieldType struct {
 	Typ   reflect.Type
 }
 
+// Exported returns true if the field is exported within the struct
+func (f *RawStructFieldType) Exported() bool {
+	return strings.Title(f.Field.Name) == f.Field.Name
+}
+
+// RawFields returns all fields of a given reflection type
 func (s *Struct) RawFields() []RawStructFieldType {
 	rf := []RawStructFieldType{}
 
-	sValue := reflect.ValueOf(s)
+	sValue := reflect.ValueOf(s.Ref)
 
 	num := sValue.NumField()
 	for i := 0; i < num; i++ {

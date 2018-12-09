@@ -41,5 +41,4 @@ func ProcessModel(outDir string, models []interface{}) error {
 	}
 
 	return out.Write(blocks...)
-	//return nil
 }

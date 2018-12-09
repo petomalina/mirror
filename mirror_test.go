@@ -17,7 +17,7 @@ func (s *StructSuite) TestReflectStruct() {
 		expectedReflection{
 			name: "User",
 		},
-		ReflectStruct(userFixture.User{}),
+		ReflectStruct(userFixture.XUser),
 	)
 }
 
@@ -27,6 +27,25 @@ type expectedReflection struct {
 
 func assertReflectedStruct(s *suite.Suite, ex expectedReflection, ref *Struct) {
 	s.EqualValues(ex.name, ref.Name())
+}
+
+func (s *StructSuite) TestRawFields() {
+	fields := ReflectStruct(userFixture.XUser).RawFields()
+
+	s.EqualValues(3, len(fields))
+	s.EqualValues("Email", fields[0].Field.Name)
+	s.EqualValues("string", fields[0].Typ.String())
+	s.EqualValues("Name", fields[1].Field.Name)
+	s.EqualValues("string", fields[1].Typ.String())
+	s.EqualValues("password", fields[2].Field.Name)
+	s.EqualValues("string", fields[2].Typ.String())
+}
+
+func (s *StructSuite) TestRawFieldExported() {
+	fields := ReflectStruct(userFixture.XUser).RawFields()
+	s.True(fields[0].Exported())
+	s.True(fields[1].Exported())
+	s.False(fields[2].Exported())
 }
 
 func TestStructSuite(t *testing.T) {
