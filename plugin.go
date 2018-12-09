@@ -2,6 +2,7 @@ package mirror
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -55,4 +56,58 @@ func LoadPluginSymbols(pluginPath string, symbols []string) ([]interface{}, erro
 	}
 
 	return models, nil
+}
+
+// WithChangedPackage changes the `package X` line of each file in the
+// targeted package, changing its name to the desiredPkgName, running the
+// `run` function and changing it back to the default
+func WithChangedPackage(pkg, desiredPkgName string, run func() error) error {
+	L.Method("Internal/package", "WithChangedPackage").Trace("Invoked on pkg: ", pkg)
+	goFiles, err := listGoFiles(pkg)
+	if err != nil {
+		return err
+	}
+	L.Method("Internal/package", "WithChangedPackage").Trace("Listed files: ", goFiles)
+
+	// fileContents map holds all changed files with their
+	// original package names and contents
+	fileContents, err := readFilesAndPackages(goFiles)
+	if err != nil {
+		return err
+	}
+
+	// replace all package directives to the desired package names
+	for _, f := range goFiles {
+		err = ioutil.WriteFile(
+			f,
+			[]byte(pkgRegex.ReplaceAll(fileContents[f].content, []byte("package "+desiredPkgName))),
+			0,
+		)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	if err = run(); err != nil {
+		return err
+	}
+
+	// replace back to the original package names
+	for _, f := range goFiles {
+		err = ioutil.WriteFile(
+			f,
+			[]byte(pkgRegex.ReplaceAll(
+				fileContents[f].content,
+				append([]byte("package "), fileContents[f].originalPkgName...),
+			)),
+			0,
+		)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
