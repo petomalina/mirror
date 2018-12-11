@@ -10,5 +10,5 @@ type User struct {
 
 // GENERATOR ONLY, DON'T USE
 var (
-	XUser = User{}
+	XUser = &User{}
 )

@@ -13,5 +13,5 @@ type User struct {
 // These variables are only exported for the purpose
 // of code generation
 var (
-	XUser = User{}
+	XUser = &User{}
 )

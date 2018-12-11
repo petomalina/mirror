@@ -16,6 +16,7 @@ func (s *StructSuite) TestReflectStruct() {
 		&s.Suite,
 		expectedReflection{
 			name: "User",
+			pkg:  "github.com/petomalina/mirror/fixtures/user",
 		},
 		ReflectStruct(userFixture.XUser),
 	)
@@ -23,10 +24,12 @@ func (s *StructSuite) TestReflectStruct() {
 
 type expectedReflection struct {
 	name string
+	pkg  string
 }
 
 func assertReflectedStruct(s *suite.Suite, ex expectedReflection, ref *Struct) {
 	s.EqualValues(ex.name, ref.Name())
+	s.EqualValues(ex.pkg, ref.PkgPath())
 }
 
 func (s *StructSuite) TestRawFields() {

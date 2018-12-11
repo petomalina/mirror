@@ -43,6 +43,11 @@ func (s *Struct) Name() string {
 	return pkgStrip[0]
 }
 
+// PkgPath returns the import path for the current reflection
+func (s *Struct) PkgPath() string {
+	return reflect.TypeOf(s.Ref).Elem().PkgPath()
+}
+
 // Fields returns a map of Name:Type pairs which can be used
 // directly when generating new code
 func (s *Struct) Fields() map[string]string {
@@ -65,6 +70,7 @@ func (s *Struct) IsInterface(i reflect.Type) bool {
 // key-value pairs (as map can't be indexed by full structure and
 // reflect.StuctField is used without pointers across reflect)
 type RawStructFieldType struct {
+	Value reflect.Value
 	Field reflect.StructField
 	Typ   reflect.Type
 }
@@ -78,13 +84,14 @@ func (f *RawStructFieldType) Exported() bool {
 func (s *Struct) RawFields() []RawStructFieldType {
 	rf := []RawStructFieldType{}
 
-	sValue := reflect.ValueOf(s.Ref)
+	sValue := reflect.ValueOf(s.Ref).Elem()
 
 	num := sValue.NumField()
 	for i := 0; i < num; i++ {
 		v := sValue.Field(i)
 
 		rf = append(rf, RawStructFieldType{
+			Value: sValue,
 			Field: sValue.Type().Field(i),
 			Typ:   v.Type(),
 		})
