@@ -1,4 +1,4 @@
-package mirror
+package bundle
 
 import (
 	"github.com/sirupsen/logrus"

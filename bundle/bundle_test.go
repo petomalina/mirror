@@ -1,4 +1,4 @@
-package mirror
+package bundle
 
 import (
 	"github.com/stretchr/testify/suite"
@@ -25,28 +25,18 @@ func (s *StructIntegrationSuite) TearDownTest() {
 	}
 }
 
+// TODO: this integration test should be moved into the bundle package
 func (s *StructIntegrationSuite) TestReflectStruct() {
-	plug, err := copyPackageToCache("./fixtures/user")
-	s.NoError(err)
-	defer func() {
-		s.NoError(os.RemoveAll(plug))
-	}()
+	b := Bundle{
+		RunFunc: func(out string, models []interface{}) error {
+			s.Len(models, 1)
 
-	so, err := BuildPlugin(plug)
-	s.NoError(err)
-	s.cleanup = append(s.cleanup, so)
-
-	syms, err := LoadPluginSymbols(so, []string{"XUser"})
-	s.NoError(err)
-	s.Len(syms, 1)
-
-	assertReflectedStruct(
-		&s.Suite,
-		expectedReflection{
-			name: "User",
+			return nil
 		},
-		ReflectStruct(syms[0]),
-	)
+	}
+
+	err := b.Run("../fixtures/user", []string{"XUser"}, "")
+	s.NoError(err)
 }
 
 func TestStructIntegrationSuite(t *testing.T) {

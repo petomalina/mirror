@@ -12,7 +12,7 @@ type StructSuite struct {
 
 func (s *StructSuite) TestReflectStruct() {
 
-	assertReflectedStruct(
+	AssertReflectedStruct(
 		&s.Suite,
 		expectedReflection{
 			name: "User",
@@ -27,7 +27,7 @@ type expectedReflection struct {
 	pkg  string
 }
 
-func assertReflectedStruct(s *suite.Suite, ex expectedReflection, ref *Struct) {
+func AssertReflectedStruct(s *suite.Suite, ex expectedReflection, ref *Struct) {
 	s.EqualValues(ex.name, ref.Name())
 	s.EqualValues(ex.pkg, ref.PkgPath())
 }
