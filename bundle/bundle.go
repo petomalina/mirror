@@ -1,6 +1,7 @@
 package bundle
 
 import (
+	"errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"os"
@@ -14,13 +15,26 @@ type Bundle struct {
 
 type BundleRunFunc func(outDir string, models []interface{}) error
 
-func (b *Bundle) Run(pkg string, symbols []string, outDir string) error {
+func (b *Bundle) Run(pkg string, symbols []string, outDir string, generateSymbols bool) error {
 	L.Method("Bundle", "Run").Trace("Invoked, should load: ", symbols)
 
 	// copy to the cache dir
 	pkgCacheDir, err := copyPackageToCache(pkg)
 	if err != nil {
 		return err
+	}
+
+	// automatically generate all symbols, creating e.g. XUser from User etc.
+	if generateSymbols {
+		err = generateSymbolsForModels(symbols, pkgCacheDir)
+		if err != nil {
+			return err
+		}
+
+		// mutate to match the symbol prefix
+		for i := range symbols {
+			symbols[i] = "X" + symbols[i]
+		}
 	}
 
 	// remove the cache dir once we are done
@@ -94,7 +108,7 @@ func (b *Bundle) CreateDefaultApp(name string) *cli.App {
 			// TODO: needs to be implemented - models must be specified and can't be 'all' if this
 			// flag is set to true, otherwise we can't find them
 			Name:  "generateSymbols, x",
-			Usage: "Defines if symbols should be generated automatically or not",
+			Usage: "(experimental) Defines if symbols should be generated automatically or not",
 		},
 	}
 	app.Action = func(c *cli.Context) error {
@@ -107,10 +121,22 @@ func (b *Bundle) CreateDefaultApp(name string) *cli.App {
 		}
 		L.SetLevel(logLevel)
 
+		// validate the generateSymbols flag, so we can warn the user beforehand
+		if c.Bool("generateSymbols") {
+			if len(c.StringSlice("models")) == 0 {
+				return errors.New("can't use generateSymbols (-x) without specifying models")
+			}
+
+			if len(c.StringSlice("models")) == 1 && c.StringSlice("models")[0] == "all" {
+				return errors.New("using 'all' with generateSymbols (-x) is forbidden - can't find models")
+			}
+		}
+
 		err = b.Run(
 			c.String("pkg"),
 			c.StringSlice("models"),
 			c.String("out"),
+			c.Bool("generateSymbols"),
 		)
 
 		if err != nil {

@@ -35,7 +35,7 @@ func (s *StructIntegrationSuite) TestReflectStruct() {
 		},
 	}
 
-	err := b.Run("../fixtures/user", []string{"XUser"}, "")
+	err := b.Run("../fixtures/user", []string{"XUser"}, "", false)
 	s.NoError(err)
 }
 
