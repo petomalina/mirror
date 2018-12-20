@@ -8,27 +8,14 @@ import (
 	"strings"
 )
 
-const mapTemplate = `type _T_Slice []*_T_
-
-type _T_MapCallback func(*_T_) *_T_
-
-// Map replaces each object in slice by its mapped descendant
-func (us _T_Slice) Map(cb _T_MapCallback) _T_Slice {
-	newSlice := _T_Slice{}
-	for _, o := range us {
-		newSlice = append(newSlice, cb(o))
-	}
-	
-	return newSlice
-}
-`
+const mapTemplate = ``
 
 func main() {
-	bundle := &bundle.Bundle{
+	b := &bundle.Bundle{
 		RunFunc: ProcessModel,
 	}
 
-	if err := bundle.RunDefaultApp("mirror-functional"); err != nil {
+	if err := b.RunDefaultApp("mirror-hijacker"); err != nil {
 		log.Fatal(err)
 	}
 }

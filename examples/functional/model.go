@@ -1,6 +1,6 @@
 package functional
 
-//go:generate MIRROR_MODELS=USer go run ./mirror/generate.go
+//go:generate functional -m XUser
 
 type Email string
 

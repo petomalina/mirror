@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/petomalina/mirror"
+	"github.com/petomalina/mirror/bundle"
 	"log"
 	"path/filepath"
 	"strings"
@@ -20,14 +21,38 @@ func (us _T_Slice) Map(cb _T_MapCallback) _T_Slice {
 	
 	return newSlice
 }
+
+type _T_FilterCallback func(*_T_) bool
+
+func (us _T_Slice) Filter(cb _T_FilterCallback) _T_Slice {
+	newSlice := _T_Slice{}
+	for _, o := range us  {
+		if cb(o) {
+			newSlice = append(newSlice, o)
+		}
+	}
+
+	return newSlice
+}
+
+type _T_ReduceCallback func(interface{}, *_T_) interface{} 
+
+func (us _T_Slice) Reduce(cb _T_ReduceCallback, init interface{}) interface{} {
+	var res = init
+	for _, o := range us {
+		res = cb(res, o)
+	}
+
+	return res
+}
 `
 
 func main() {
-	bundle := &mirror.Bundle{
+	b := &bundle.Bundle{
 		RunFunc: ProcessModel,
 	}
 
-	if err := bundle.RunDefaultApp("mirror-functional"); err != nil {
+	if err := b.RunDefaultApp("mirror-functional"); err != nil {
 		log.Fatal(err)
 	}
 }

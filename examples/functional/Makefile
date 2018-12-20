@@ -1,2 +1,3 @@
 all:
-	MIRROR_MODELS=XUser go run ./mirror/generate.go
+	go install ../../bundles/functional
+	functional -m XUser
