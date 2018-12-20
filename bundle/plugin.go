@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"plugin"
+	"reflect"
+	"unsafe"
 )
 
 // BuildPlugin builds the given package into plugin and saves it in
@@ -41,10 +43,23 @@ func LoadPluginSymbols(pluginPath string, symbols []string) ([]interface{}, erro
 	}
 
 	// special case - load all exported symbols from the file
-	if len(symbols) == 1 && symbols[0] == "*" {
-		// TODO: make it possible via reflection (get all symbols from plugin)
+	if len(symbols) == 1 && symbols[0] == "all" {
+		L.Method("Internal/plugin", "LoadPluginSymbols").Trace("Got 'all' option, finding symbols")
+		// clear the symbols array so it doesn't contain the *
+		symbols = []string{}
+
+		// create the reflection from the 'syms' field of Plugin
+		symsField := reflect.ValueOf(p).Elem().FieldByName("syms")
+		// create an unsafe pointer so we can access that field (disables the runtime protection)
+		symsFieldPtr := reflect.NewAt(symsField.Type(), unsafe.Pointer(symsField.UnsafeAddr())).Elem()
+
+		// range through the map and create the symbols in our array
+		for sym := range symsFieldPtr.Interface().(map[string]interface{}) {
+			symbols = append(symbols, sym)
+		}
 	}
 
+	L.Method("Internal/plugin", "LoadPluginSymbols").Trace("Looking up symbols: ", symbols)
 	// add model symbols that were loaded from the built plugin
 	models := []interface{}{}
 	for _, symName := range symbols {

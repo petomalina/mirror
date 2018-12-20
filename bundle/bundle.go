@@ -76,7 +76,7 @@ func (b *Bundle) CreateDefaultApp(name string) *cli.App {
 		},
 		cli.StringSliceFlag{
 			Name:   "models, m",
-			Usage:  "Models that should be considered when generating",
+			Usage:  "Models that should be considered when generating, 'all' for all that can be found",
 			EnvVar: "MIRROR_MODELS",
 		},
 		cli.StringFlag{
@@ -89,6 +89,12 @@ func (b *Bundle) CreateDefaultApp(name string) *cli.App {
 			Value:  "info",
 			Usage:  "Sets the logging level for the bundle",
 			EnvVar: "MIRROR_LOG_LEVEL",
+		},
+		cli.BoolFlag{
+			// TODO: needs to be implemented - models must be specified and can't be 'all' if this
+			// flag is set to true, otherwise we can't find them
+			Name:  "generateSymbols, x",
+			Usage: "Defines if symbols should be generated automatically or not",
 		},
 	}
 	app.Action = func(c *cli.Context) error {
