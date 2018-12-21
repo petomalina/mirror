@@ -1,7 +1,6 @@
 package bundle
 
 import (
-	"errors"
 	"fmt"
 	"golang.org/x/tools/go/packages"
 	"io/ioutil"
@@ -15,15 +14,8 @@ var (
 	pkgRegex = regexp.MustCompile(`(?m:^package (?P<pkg>\w+$))`)
 )
 
-// changedFileContent is a utility structure to save the package
-// change and the contents so we won't need to reload it
-type changedFileContent struct {
-	content         []byte
-	originalPkgName []byte
-}
-
 // listGoFiles returns names of go files in the targeted package
-func listGoFiles(pkg string) ([]string, error) {
+func listGoFiles(pkg string) (*packages.Package, error) {
 	cfg := &packages.Config{
 		Mode: packages.LoadFiles,
 	}
@@ -32,41 +24,7 @@ func listGoFiles(pkg string) ([]string, error) {
 		return nil, err
 	}
 
-	return pkgs[0].GoFiles, nil
-}
-
-// readFilesAndPackages accepts a set of filtered Go files,
-// reads them and caches their contents with their package names
-func readFilesAndPackages(ff []string) (map[string]changedFileContent, error) {
-	changes := map[string]changedFileContent{}
-
-	// go through all files, read them and save their original package names
-	for _, f := range ff {
-		content, err := ioutil.ReadFile(f)
-		if err != nil {
-			return nil, err
-		}
-
-		match := pkgRegex.FindStringSubmatch(string(content))
-		if len(match) <= 0 {
-			// TODO: wrap the error so it can be easily tracked by callers
-			return nil, errors.New("No `package` was found when scanning: " + f)
-		}
-
-		originalName := match[0]
-		// TODO: what is happening here?
-		if len(match) > 1 {
-			originalName = match[1]
-		}
-
-		// save the change so we can revert
-		changes[f] = changedFileContent{
-			content:         content,
-			originalPkgName: []byte(originalName),
-		}
-	}
-
-	return changes, nil
+	return pkgs[0], nil
 }
 
 func copyPackageToCache(pkg string) (string, error) {

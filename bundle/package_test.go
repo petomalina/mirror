@@ -12,7 +12,7 @@ type PackageSuite struct {
 func (s *PackageSuite) TestListGoFiles() {
 	ff, err := listGoFiles(".")
 	s.NoError(err)
-	s.Len(ff, 5)
+	s.Len(ff.GoFiles, 5)
 }
 
 func TestPackageSuite(t *testing.T) {
