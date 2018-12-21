@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"fmt"
 	"github.com/petomalina/mirror"
 	"reflect"
 	"unsafe"
@@ -10,12 +9,9 @@ import (
 type HijackedField struct {
 }
 
-func Hijack(model interface{}) error {
-	fields := mirror.ReflectStruct(model).RawFields()
+func Hijack(model *mirror.Struct) error {
 
-	fmt.Printf("%+v\n", model)
-
-	for _, f := range fields {
+	for _, f := range model.RawFields() {
 		// ignore exported fields - user already has access to them
 		if f.Exported() {
 			continue

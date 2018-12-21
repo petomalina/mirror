@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/petomalina/mirror"
 	"github.com/petomalina/mirror/bundle"
 	"golang.org/x/tools/go/packages"
@@ -11,10 +10,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var typeTemplate = template.Must(template.New("type").Parse(`
-type Hijacked{{ .Name }} *{{ .Package}}.{{ .Name }}
+type Hijacked{{ .Name }} {{ .Package}}.{{ .Name }}
 `))
 
 type TypeTemplateData struct {
@@ -23,12 +23,12 @@ type TypeTemplateData struct {
 }
 
 var hiJackedFieldTemplate = template.Must(template.New("hijackedField").Parse(`
-func (h *Hijacked{{ .Name }}) Set{{ .FieldName }}(x {{ .FieldType }}) error {
-	return nil
-}
-
 func (h *Hijacked{{ .Name }}) Get{{ .FieldName }}() ({{ .FieldType }}, error) {
 	return nil, nil
+}
+
+func (h *Hijacked{{ .Name }}) Set{{ .FieldName }}(x {{ .FieldType }}) error {
+	return nil
 }
 `))
 
@@ -68,8 +68,27 @@ func ProcessModel(outDir string, models []interface{}, pkg *packages.Package) er
 			return err
 		}
 
+		mappings := make(map[string]string)
 		for _, f := range r.RawFields() {
-			fmt.Println(f)
+			// only hijack unexported fields
+			if f.Exported() {
+				continue
+			}
+
+			// TODO: resolve the real type
+			mappings[strings.Title(f.Field.Name)] = "string"
+		}
+
+		for fieldName, fieldType := range mappings {
+			err := hiJackedFieldTemplate.Execute(&blocks, &FieldTemplateData{
+				Name:      r.Name(),
+				FieldName: fieldName,
+				FieldType: fieldType,
+			})
+
+			if err != nil {
+				return err
+			}
 		}
 	}
 
