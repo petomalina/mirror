@@ -14,10 +14,11 @@ var (
 	pkgRegex = regexp.MustCompile(`(?m:^package (?P<pkg>\w+$))`)
 )
 
-// listGoFiles returns names of go files in the targeted package
-func listGoFiles(pkg string) (*packages.Package, error) {
+// findPackage returns names of go files in the targeted package
+func findPackage(pkg string) (*packages.Package, error) {
 	cfg := &packages.Config{
-		Mode: packages.LoadFiles,
+		Mode:  packages.LoadFiles,
+		Tests: false,
 	}
 	pkgs, err := packages.Load(cfg, pkg)
 	if err != nil {
@@ -27,7 +28,7 @@ func listGoFiles(pkg string) (*packages.Package, error) {
 	return pkgs[0], nil
 }
 
-func copyPackageToCache(pkg string) (string, error) {
+func copyPackageToCache(pkg *packages.Package) (string, error) {
 	// Copy the directory so the plugin can be build outside
 	pkgCacheDir := fmt.Sprintf("./.mirror/%d", rand.Int())
 	L.Method("Bundle", "Run").Trace("Making cache dir: ", pkgCacheDir)
@@ -37,7 +38,14 @@ func copyPackageToCache(pkg string) (string, error) {
 	}
 
 	L.Method("Bundle", "Run").Trace("Copying ", pkg, "->", pkgCacheDir)
-	return pkgCacheDir, CopyDir(pkg, pkgCacheDir, false)
+	for _, f := range pkg.GoFiles {
+		err := CopyFile(f, filepath.Join(pkgCacheDir, filepath.Base(f)))
+		if err != nil {
+			return pkgCacheDir, err
+		}
+	}
+
+	return pkgCacheDir, nil
 }
 
 func generateSymbolsForModels(models []string, out string) error {

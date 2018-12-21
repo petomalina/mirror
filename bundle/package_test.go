@@ -10,7 +10,7 @@ type PackageSuite struct {
 }
 
 func (s *PackageSuite) TestListGoFiles() {
-	ff, err := listGoFiles(".")
+	ff, err := findPackage(".")
 	s.NoError(err)
 	s.Len(ff.GoFiles, 5)
 }

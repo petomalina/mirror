@@ -79,7 +79,7 @@ func LoadPluginSymbols(pluginPath string, symbols []string) ([]interface{}, erro
 // `run` function and changing it back to the default
 func WithChangedPackage(pkgName, desiredPkgName string, run func() error) error {
 	L.Method("Internal/package", "WithChangedPackage").Trace("Invoked on pkgName: ", pkgName)
-	pkg, err := listGoFiles(pkgName)
+	pkg, err := findPackage(pkgName)
 	if err != nil {
 		return err
 	}

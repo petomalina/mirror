@@ -15,8 +15,13 @@ type Bundle struct {
 
 type BundleRunFunc func(outDir string, models []interface{}) error
 
-func (b *Bundle) Run(pkg string, symbols []string, outDir string, generateSymbols, preserveCache bool) error {
-	L.Method("Bundle", "Run").Trace("Invoked, should load: ", symbols)
+func (b *Bundle) Run(pkgName string, symbols []string, outDir string, generateSymbols, preserveCache bool) error {
+	L.Method("Bundle", "Run").Trace("Invoked, should load: ", symbols, "from: ", pkgName)
+
+	pkg, err := findPackage(pkgName)
+	if err != nil {
+		return err
+	}
 
 	// copy to the cache dir
 	pkgCacheDir, err := copyPackageToCache(pkg)
