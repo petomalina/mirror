@@ -15,7 +15,7 @@ type Bundle struct {
 
 type BundleRunFunc func(outDir string, models []interface{}) error
 
-func (b *Bundle) Run(pkg string, symbols []string, outDir string, generateSymbols bool) error {
+func (b *Bundle) Run(pkg string, symbols []string, outDir string, generateSymbols, preserveCache bool) error {
 	L.Method("Bundle", "Run").Trace("Invoked, should load: ", symbols)
 
 	// copy to the cache dir
@@ -38,12 +38,16 @@ func (b *Bundle) Run(pkg string, symbols []string, outDir string, generateSymbol
 	}
 
 	// remove the cache dir once we are done
-	defer func(dir string) {
-		L.Method("Bundle", "Run").Trace("Removing cache dir: ", dir)
-		if err := os.RemoveAll(dir); err != nil {
-			L.Method("Bundle", "Run").Warn("An error occurred when removing cache dir: " + dir)
-		}
-	}(pkgCacheDir)
+	// only if user doesn't want to preserve it
+	if !preserveCache {
+		L.Method("Bundle", "Run").Trace("Cache will be deleted, as preserveCache is not set")
+		defer func(dir string) {
+			L.Method("Bundle", "Run").Trace("Removing cache dir: ", dir)
+			if err := os.RemoveAll(dir); err != nil {
+				L.Method("Bundle", "Run").Warn("An error occurred when removing cache dir: " + dir)
+			}
+		}(pkgCacheDir)
+	}
 
 	L.Method("Bundle", "Run").Trace("Building the plugin: ", pkgCacheDir)
 	objPath, err := BuildPlugin(pkgCacheDir)
@@ -105,10 +109,12 @@ func (b *Bundle) CreateDefaultApp(name string) *cli.App {
 			EnvVar: "MIRROR_LOG_LEVEL",
 		},
 		cli.BoolFlag{
-			// TODO: needs to be implemented - models must be specified and can't be 'all' if this
-			// flag is set to true, otherwise we can't find them
 			Name:  "generateSymbols, x",
 			Usage: "(experimental) Defines if symbols should be generated automatically or not",
+		},
+		cli.BoolFlag{
+			Name:  "preserveCache, c",
+			Usage: "(experimental) Preserves the cache after the build for further examination",
 		},
 	}
 	app.Action = func(c *cli.Context) error {
@@ -137,6 +143,7 @@ func (b *Bundle) CreateDefaultApp(name string) *cli.App {
 			c.StringSlice("models"),
 			c.String("out"),
 			c.Bool("generateSymbols"),
+			c.Bool("preserveCache"),
 		)
 
 		if err != nil {

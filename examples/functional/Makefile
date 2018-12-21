@@ -1,3 +1,3 @@
 all:
 	go install ../../bundles/functional
-	functional -m XUser
+	functional -m User -v TRACE -x
