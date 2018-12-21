@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/petomalina/mirror"
 	"github.com/petomalina/mirror/bundle"
+	"golang.org/x/tools/go/packages"
 	"log"
 	"path/filepath"
 	"strings"
@@ -57,7 +58,7 @@ func main() {
 	}
 }
 
-func ProcessModel(outDir string, models []interface{}) error {
+func ProcessModel(outDir string, models []interface{}, _ *packages.Package) error {
 	out := mirror.File(filepath.Join(outDir, "functional.go"))
 	blocks := []string{}
 
