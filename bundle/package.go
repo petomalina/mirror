@@ -3,12 +3,12 @@ package bundle
 import (
 	"errors"
 	"fmt"
+	"golang.org/x/tools/go/packages"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 )
 
 var (
@@ -22,28 +22,17 @@ type changedFileContent struct {
 	originalPkgName []byte
 }
 
-// listGoFiles returns names of go files in the targeted directory
-func listGoFiles(dir string) ([]string, error) {
-	fii, err := ioutil.ReadDir(dir)
+// listGoFiles returns names of go files in the targeted package
+func listGoFiles(pkg string) ([]string, error) {
+	cfg := &packages.Config{
+		Mode: packages.LoadFiles,
+	}
+	pkgs, err := packages.Load(cfg, pkg)
 	if err != nil {
 		return nil, err
 	}
 
-	ff := []string{}
-	for _, fi := range fii {
-		// skip directories as they may contain other packages
-		if fi.IsDir() {
-			continue
-		}
-
-		if !strings.HasSuffix(fi.Name(), ".go") {
-			continue
-		}
-
-		ff = append(ff, filepath.Join(dir, fi.Name()))
-	}
-
-	return ff, nil
+	return pkgs[0].GoFiles, nil
 }
 
 // readFilesAndPackages accepts a set of filtered Go files,
