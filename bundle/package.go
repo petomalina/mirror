@@ -58,7 +58,7 @@ var (
 `
 
 	for _, m := range models {
-		tmpl += "\tX" + m + "  = &" + m + "{}\n"
+		tmpl += "\tX" + m + "  = " + m + "{}\n"
 	}
 
 	tmpl += ")\n"
