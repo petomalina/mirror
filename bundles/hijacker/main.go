@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/petomalina/mirror"
+	"github.com/petomalina/mirror/pkg/bundle"
 	"golang.org/x/tools/go/packages"
 	"html/template"
 	"io/ioutil"
@@ -43,7 +44,7 @@ func main() {
 	}
 }
 
-func ProcessModel(outDir string, models []interface{}, pkg *packages.Package) error {
+func ProcessModel(models mirror.StructSlice, out *mirror.Out, pkg *packages.Package) error {
 	blocks := bytes.Buffer{}
 
 	absPath, _ := filepath.Abs(outDir)

@@ -10,27 +10,12 @@ type Struct struct {
 	Ref interface{}
 }
 
-type StructFunc func(s *Struct) error
-
-var a StructFunc
-
 // ReflectStruct creates a mirror Struct that enables users
 // to use mirror-enhanced reflections
 func ReflectStruct(s interface{}) *Struct {
 	return &Struct{
 		s,
 	}
-}
-
-// ReflectStructs is a plural function for ReflectStruct
-func ReflectStructs(ss ...interface{}) []*Struct {
-	rss := []*Struct{}
-
-	for _, s := range ss {
-		rss = append(rss, ReflectStruct(s))
-	}
-
-	return rss
 }
 
 // Name returns the name of an underlying type for a given reflection.
@@ -103,4 +88,18 @@ func (s *Struct) RawFields() []RawStructFieldType {
 	}
 
 	return rf
+}
+
+// StructSlice is a slice of pointers to Struct, used to do multi-struct operations
+type StructSlice []*Struct
+
+// ReflectStructs is a plural function for ReflectStruct
+func ReflectStructs(ss ...interface{}) StructSlice {
+	rss := StructSlice{}
+
+	for _, s := range ss {
+		rss = append(rss, ReflectStruct(s))
+	}
+
+	return rss
 }

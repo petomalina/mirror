@@ -5,13 +5,20 @@ import (
 	"github.com/petomalina/mirror/pkg/bundle"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"golang.org/x/tools/go/packages"
 	"os"
 
 	. "github.com/petomalina/mirror/pkg/logger"
 )
 
+// RunFunc is a callback that will be called when the app bootstrap finishes
+type RunFunc func(StructSlice, *Out, *packages.Package) error
+
+// Out is an alias for the underlying bundle.Out type, hidden with its implementation details
+type Out = bundle.Out
+
 // CreateDefaultApp returns default flag configuration for bundled apps
-func CreateDefaultApp(name string, runFunc bundle.BundleRunFunc) *cli.App {
+func CreateDefaultApp(name string, runFunc RunFunc) *cli.App {
 	// override the version flag so we can use -v for verbosity
 	cli.VersionFlag = cli.BoolFlag{
 		Name:  "version",
@@ -73,16 +80,15 @@ func CreateDefaultApp(name string, runFunc bundle.BundleRunFunc) *cli.App {
 		}
 
 		// create the internal bundle that will be run
-		b := bundle.Bundle{
-			RunFunc: runFunc,
-		}
+		b := bundle.Bundle{}
 
-		err = b.Run(
+		symbols, pkg, err := b.Run(
 			c.String("pkg"),
 			c.StringSlice("models"),
-			c.String("out"),
-			c.Bool("generateSymbols"),
-			c.Bool("preserveCache"),
+			bundle.RunOptions{
+				GenerateSymbols: c.Bool("generateSymbols"),
+				PreserveCache:   c.Bool("preserveCache"),
+			},
 		)
 
 		if err != nil {
@@ -91,14 +97,18 @@ func CreateDefaultApp(name string, runFunc bundle.BundleRunFunc) *cli.App {
 				Errorln("An error occurred when running the generator: ", err.Error())
 		}
 
-		return err
+		return runFunc(
+			ReflectStructs(symbols...),
+			bundle.NewOut(c.String("out")),
+			pkg,
+		)
 	}
 
 	return app
 }
 
 // RunDefaultApp will automatically run the defaultly bundled application
-func RunDefaultApp(name string, runFunc bundle.BundleRunFunc) error {
+func RunDefaultApp(name string, runFunc RunFunc) error {
 	L.Method("Bundle", "RunDefaultApp").Trace("Invoked  with os args: ", os.Args)
 	return CreateDefaultApp(name, runFunc).Run(os.Args)
 }
