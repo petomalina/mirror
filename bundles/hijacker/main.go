@@ -41,6 +41,7 @@ func main() {
 
 func ProcessModel(models mirror.StructSlice, out *mirror.Out, pkg *packages.Package) error {
 	temp := out.File("hijacker.go")
+	temp.Imports = models.PkgPaths()
 
 	// hijack and create types with fields
 	for _, r := range models {

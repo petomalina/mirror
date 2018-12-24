@@ -42,10 +42,10 @@ func (o *Out) File(name string) *File {
 }
 
 type File struct {
-	path    string
-	imports []string
+	path string
+	buf  *bytes.Buffer
 
-	buf *bytes.Buffer
+	Imports []string
 }
 
 func (f *File) AddStringTemplate(str string, data interface{}) error {
@@ -56,10 +56,6 @@ func (f *File) AddTemplate(t *template.Template, data interface{}) error {
 	return t.Execute(f.buf, data)
 }
 
-func (f *File) DetermineImports() error {
-	return nil
-}
-
 func (f *File) Write() error {
 	pkgName, err := DeterminePackage(filepath.Dir(f.path))
 	if err != nil {
@@ -68,6 +64,14 @@ func (f *File) Write() error {
 
 	headerBuf := &bytes.Buffer{}
 	headerBuf.Write([]byte("package " + pkgName + "\n\n"))
+
+	if len(f.Imports) != 0 {
+		headerBuf.WriteString("import (\n")
+		for _, i := range f.Imports {
+			headerBuf.WriteString("\t" + i + "\n")
+		}
+		headerBuf.WriteString(")\n\n")
+	}
 
 	return ioutil.WriteFile(f.path, append(headerBuf.Bytes(), f.buf.Bytes()...), os.ModePerm)
 }

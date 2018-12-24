@@ -103,3 +103,26 @@ func ReflectStructs(ss ...interface{}) StructSlice {
 
 	return rss
 }
+
+// PkgPath returns the import path for the current reflection
+func (s StructSlice) PkgPaths() []string {
+	paths := []string{}
+
+	for _, st := range s {
+		path := st.PkgPath()
+		if path == "" {
+			continue
+		}
+
+		// just continue if we already have this one
+		for _, p := range paths {
+			if path == p {
+				continue
+			}
+		}
+
+		paths = append(paths, path)
+	}
+
+	return paths
+}
