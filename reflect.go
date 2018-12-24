@@ -50,12 +50,6 @@ func (s *Struct) Fields() map[string]string {
 	return ff
 }
 
-// IsInterface returns true if the reflection complies with
-// the given interface value
-func (s *Struct) IsInterface(i reflect.Type) bool {
-	return false
-}
-
 // RawStructFieldType is returned by the RawFields as an array of
 // key-value pairs (as map can't be indexed by full structure and
 // reflect.StuctField is used without pointers across reflect)
