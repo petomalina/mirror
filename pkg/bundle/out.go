@@ -68,7 +68,7 @@ func (f *File) Write() error {
 	if len(f.Imports) != 0 {
 		headerBuf.WriteString("import (\n")
 		for _, i := range f.Imports {
-			headerBuf.WriteString("\t" + i + "\n")
+			headerBuf.WriteString("\t\"" + i + "\"\n")
 		}
 		headerBuf.WriteString(")\n\n")
 	}
@@ -84,13 +84,13 @@ func DeterminePackage(pkgPath string) (string, error) {
 		Tests: false,
 	}, pkgPath)
 
-	if err != nil || len(pkgs) == 0 {
+	if err != nil || len(pkgs) == 0 || pkgs[0].Name == "" {
 		abs, err := filepath.Abs(pkgPath)
 		if err != nil {
 			return "", err
 		}
 
-		return filepath.Dir(abs), nil
+		return filepath.Base(abs), nil
 	}
 
 	return pkgs[0].Name, nil

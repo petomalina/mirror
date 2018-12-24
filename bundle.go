@@ -98,7 +98,9 @@ func CreateDefaultApp(name string, runFunc RunFunc) *cli.App {
 		}
 
 		return runFunc(
-			ReflectStructs(symbols...),
+			ReflectStructs(symbols...).Each(func(s *Struct) {
+				s.OriginalPackage = pkg.PkgPath
+			}),
 			bundle.NewOut(c.String("out")),
 			pkg,
 		)

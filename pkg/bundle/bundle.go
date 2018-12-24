@@ -80,8 +80,8 @@ func (b *Bundle) Run(pkgName string, symbols []string, opts RunOptions) ([]inter
 
 	L.Method("Bundle", "Run").Trace("Opening the plugin: ", objPath)
 	models, err := plugins.LoadSymbols(objPath, symbols)
-	L.Method("Bundle", "Run").Trace("Loaded symbols: ", models)
 
+	L.Method("Bundle", "Run").Trace("Loaded symbols: ", models)
 	return models, pkg, err
 
 }

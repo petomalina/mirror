@@ -8,13 +8,19 @@ import (
 // Struct is a wrapper for the runtime symbol Ref
 type Struct struct {
 	Ref interface{}
+
+	// OriginalPackage can be overridden by package copiers to set the original package path
+	// if the package has changed due to movement of the Ref
+	// This is mainly used by the CreateDefaultApp when it's copying the package over to the cache
+	OriginalPackage string
 }
 
 // ReflectStruct creates a mirror Struct that enables users
 // to use mirror-enhanced reflections
 func ReflectStruct(s interface{}) *Struct {
 	return &Struct{
-		s,
+		Ref:             s,
+		OriginalPackage: "",
 	}
 }
 
@@ -35,6 +41,10 @@ func (s *Struct) Name() string {
 
 // PkgPath returns the import path for the current reflection
 func (s *Struct) PkgPath() string {
+	if s.OriginalPackage != "" {
+		return s.OriginalPackage
+	}
+
 	return reflect.TypeOf(s.Ref).Elem().PkgPath()
 }
 
@@ -96,6 +106,19 @@ func ReflectStructs(ss ...interface{}) StructSlice {
 	}
 
 	return rss
+}
+
+// StructSliceEachFunc is a type for Each method above StructSlice
+type StructSliceEachFunc func(s *Struct)
+
+// Each loops over the StructSlice and calls the callback for each of its elements
+// returning itself at the end
+func (s StructSlice) Each(cb StructSliceEachFunc) StructSlice {
+	for _, st := range s {
+		cb(st)
+	}
+
+	return s
 }
 
 // PkgPath returns the import path for the current reflection
