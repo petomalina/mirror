@@ -1,16 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"github.com/petomalina/mirror"
-	"github.com/petomalina/mirror/pkg/bundle"
 	"golang.org/x/tools/go/packages"
-	"html/template"
-	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 	"strings"
+	"text/template"
 )
 
 var typeTemplate = template.Must(template.New("type").Parse(`
@@ -24,7 +19,7 @@ type TypeTemplateData struct {
 
 var hiJackedFieldTemplate = template.Must(template.New("hijackedField").Parse(`
 func (h *Hijacked{{ .Name }}) Get{{ .FieldName }}() ({{ .FieldType }}, error) {
-	return nil, nil
+	return "", nil
 }
 
 func (h *Hijacked{{ .Name }}) Set{{ .FieldName }}(x {{ .FieldType }}) error {
@@ -45,18 +40,11 @@ func main() {
 }
 
 func ProcessModel(models mirror.StructSlice, out *mirror.Out, pkg *packages.Package) error {
-	blocks := bytes.Buffer{}
-
-	absPath, _ := filepath.Abs(outDir)
-	// write the package and the import for the original package
-	blocks.Write([]byte("package " + filepath.Base(absPath) + "\n\nimport \"" + pkg.PkgPath + "\"\n"))
-
-	// reflect all models
-	rs := mirror.ReflectStructs(models...)
+	temp := out.File("hijacker.go")
 
 	// hijack and create types with fields
-	for _, r := range rs {
-		err := typeTemplate.Execute(&blocks, &TypeTemplateData{
+	for _, r := range models {
+		err := temp.AddTemplate(typeTemplate, &TypeTemplateData{
 			Package: pkg.Name,
 			Name:    r.Name(),
 		})
@@ -76,7 +64,7 @@ func ProcessModel(models mirror.StructSlice, out *mirror.Out, pkg *packages.Pack
 		}
 
 		for fieldName, fieldType := range mappings {
-			err := hiJackedFieldTemplate.Execute(&blocks, &FieldTemplateData{
+			err := temp.AddTemplate(hiJackedFieldTemplate, &FieldTemplateData{
 				Name:      r.Name(),
 				FieldName: fieldName,
 				FieldType: fieldType,
@@ -88,5 +76,5 @@ func ProcessModel(models mirror.StructSlice, out *mirror.Out, pkg *packages.Pack
 		}
 	}
 
-	return ioutil.WriteFile(filepath.Join(outDir, "hijacker.go"), blocks.Bytes(), os.ModePerm)
+	return temp.Write()
 }

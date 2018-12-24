@@ -1,28 +1,93 @@
 package bundle
 
-import "golang.org/x/tools/go/packages"
-import . "github.com/petomalina/mirror/pkg/logger"
+import (
+	"bytes"
+	"golang.org/x/tools/go/packages"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"text/template"
+)
 
 // Out is an encapsulation of methods used to write to the output directory
 // which must represent the package
 type Out struct {
 	pkgPath string
-	pkg     *packages.Package
+	Files   map[string]*File
 }
 
 // NewOut creates a new Out wrapper
 func NewOut(pkgPath string) *Out {
-	pkg, err := packages.Load(&packages.Config{
+	return &Out{
+		pkgPath: pkgPath,
+
+		Files: make(map[string]*File),
+	}
+}
+
+// File returns an existing file reference or creates a new one which can be manipulated
+func (o *Out) File(name string) *File {
+	if f, ok := o.Files[name]; ok {
+		return f
+	}
+
+	f := &File{
+		path: filepath.Join(o.pkgPath, name),
+		buf:  &bytes.Buffer{},
+	}
+
+	o.Files[name] = f
+
+	return f
+}
+
+type File struct {
+	path    string
+	imports []string
+
+	buf *bytes.Buffer
+}
+
+func (f *File) AddStringTemplate(str string, data interface{}) error {
+	return template.Must(template.New(f.path).Parse(str)).Execute(f.buf, data)
+}
+
+func (f *File) AddTemplate(t *template.Template, data interface{}) error {
+	return t.Execute(f.buf, data)
+}
+
+func (f *File) DetermineImports() error {
+	return nil
+}
+
+func (f *File) Write() error {
+	pkgName, err := DeterminePackage(filepath.Dir(f.path))
+	if err != nil {
+		return err
+	}
+
+	headerBuf := &bytes.Buffer{}
+	headerBuf.Write([]byte("package " + pkgName + "\n\n"))
+
+	return ioutil.WriteFile(f.path, append(headerBuf.Bytes(), f.buf.Bytes()...), os.ModePerm)
+}
+
+// DeterminePackage returns a package name for the given directory
+// if no package exists, the directory name will be used instead
+func DeterminePackage(pkgPath string) (string, error) {
+	pkgs, err := packages.Load(&packages.Config{
 		Mode:  packages.LoadFiles,
 		Tests: false,
 	}, pkgPath)
 
-	if err != nil {
-		L.Method("Out", "NewOut").Warnln("An error occurred when loading output package:", err)
+	if err != nil || len(pkgs) == 0 {
+		abs, err := filepath.Abs(pkgPath)
+		if err != nil {
+			return "", err
+		}
+
+		return filepath.Dir(abs), nil
 	}
 
-	return &Out{
-		pkgPath: pkgPath,
-		pkg:     pkg[0],
-	}
+	return pkgs[0].Name, nil
 }

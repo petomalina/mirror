@@ -4,18 +4,14 @@ import (
 	"github.com/petomalina/mirror"
 	"golang.org/x/tools/go/packages"
 	"log"
-	"path/filepath"
-	"strings"
-	"text/template"
 )
 
-var functionalTemplate = template.Must(template.New("funcional").Parse(
-	`type _T_Slice []*_T_
-type _T_MapCallback func(*_T_) *_T_
+const functionalTemplate = `type {{ .TypeName }}Slice []*{{ .TypeName }}
+type {{ .TypeName }}MapCallback func(*{{ .TypeName }}) *{{ .TypeName }}
 
 // Map replaces each object in slice by its mapped descendant
-func (us _T_Slice) Map(cb _T_MapCallback) _T_Slice {
-	newSlice := _T_Slice{}
+func (us {{ .TypeName }}Slice) Map(cb {{ .TypeName }}MapCallback) {{ .TypeName }}Slice {
+	newSlice := {{ .TypeName }}Slice{}
 	for _, o := range us {
 		newSlice = append(newSlice, cb(o))
 	}
@@ -23,10 +19,10 @@ func (us _T_Slice) Map(cb _T_MapCallback) _T_Slice {
 	return newSlice
 }
 
-type _T_FilterCallback func(*_T_) bool
+type {{ .TypeName }}FilterCallback func(*{{ .TypeName }}) bool
 
-func (us _T_Slice) Filter(cb _T_FilterCallback) _T_Slice {
-	newSlice := _T_Slice{}
+func (us {{ .TypeName }}Slice) Filter(cb {{ .TypeName }}FilterCallback) {{ .TypeName }}Slice {
+	newSlice := {{ .TypeName }}Slice{}
 	for _, o := range us  {
 		if cb(o) {
 			newSlice = append(newSlice, o)
@@ -36,9 +32,9 @@ func (us _T_Slice) Filter(cb _T_FilterCallback) _T_Slice {
 	return newSlice
 }
 
-type _T_ReduceCallback func(interface{}, *_T_) interface{} 
+type {{ .TypeName }}ReduceCallback func(interface{}, *{{ .TypeName }}) interface{} 
 
-func (us _T_Slice) Reduce(cb _T_ReduceCallback, init interface{}) interface{} {
+func (us {{ .TypeName }}Slice) Reduce(cb {{ .TypeName }}ReduceCallback, init interface{}) interface{} {
 	var res = init
 	for _, o := range us {
 		res = cb(res, o)
@@ -46,7 +42,7 @@ func (us _T_Slice) Reduce(cb _T_ReduceCallback, init interface{}) interface{} {
 
 	return res
 }
-`))
+`
 
 func main() {
 	if err := mirror.RunDefaultApp("mirror-functional", ProcessModel); err != nil {
@@ -54,13 +50,21 @@ func main() {
 	}
 }
 
-func ProcessModel(outDir string, models []interface{}, _ *packages.Package) error {
-	out := mirror.File(filepath.Join(outDir, "functional.go"))
-	blocks := []string{}
+type templateData struct {
+	TypeName string
+}
 
-	for _, rs := range mirror.ReflectStructs(models...) {
-		blocks = append(blocks, strings.Replace(functionalTemplate, "_T_", rs.Name(), -1))
+func ProcessModel(models mirror.StructSlice, out *mirror.Out, _ *packages.Package) error {
+	temp := out.File("functional.go")
+
+	for _, rs := range models {
+		err := temp.AddStringTemplate(functionalTemplate, &templateData{
+			TypeName: rs.Name(),
+		})
+		if err != nil {
+			return err
+		}
 	}
 
-	return out.Write(blocks...)
+	return temp.Write()
 }
