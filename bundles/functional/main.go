@@ -2,15 +2,15 @@ package main
 
 import (
 	"github.com/petomalina/mirror"
-	"github.com/petomalina/mirror/bundle"
 	"golang.org/x/tools/go/packages"
 	"log"
 	"path/filepath"
 	"strings"
+	"text/template"
 )
 
-const mapTemplate = `type _T_Slice []*_T_
-
+var functionalTemplate = template.Must(template.New("funcional").Parse(
+	`type _T_Slice []*_T_
 type _T_MapCallback func(*_T_) *_T_
 
 // Map replaces each object in slice by its mapped descendant
@@ -46,14 +46,10 @@ func (us _T_Slice) Reduce(cb _T_ReduceCallback, init interface{}) interface{} {
 
 	return res
 }
-`
+`))
 
 func main() {
-	b := &bundle.Bundle{
-		RunFunc: ProcessModel,
-	}
-
-	if err := b.RunDefaultApp("mirror-functional"); err != nil {
+	if err := mirror.RunDefaultApp("mirror-functional", ProcessModel); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -63,7 +59,7 @@ func ProcessModel(outDir string, models []interface{}, _ *packages.Package) erro
 	blocks := []string{}
 
 	for _, rs := range mirror.ReflectStructs(models...) {
-		blocks = append(blocks, strings.Replace(mapTemplate, "_T_", rs.Name(), -1))
+		blocks = append(blocks, strings.Replace(functionalTemplate, "_T_", rs.Name(), -1))
 	}
 
 	return out.Write(blocks...)

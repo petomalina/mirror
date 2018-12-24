@@ -1,4 +1,4 @@
-package bundle
+package cp
 
 import (
 	"fmt"
@@ -9,8 +9,8 @@ import (
 )
 
 // REFERENCE: https://blog.depado.eu/post/copy-files-and-directories-in-go
-// CopyFile copies a single file from src to dst
-func CopyFile(src, dst string) error {
+// File copies a single file from src to dst
+func File(src, dst string) error {
 	var err error
 	var srcfd *os.File
 	var dstfd *os.File
@@ -35,8 +35,8 @@ func CopyFile(src, dst string) error {
 	return os.Chmod(dst, srcinfo.Mode())
 }
 
-// CopyDir copies a whole directory recursively
-func CopyDir(src string, dst string, r bool) error {
+// Dir copies a whole directory recursively
+func Dir(src string, dst string, r bool) error {
 	var err error
 	var fds []os.FileInfo
 	var srcinfo os.FileInfo
@@ -62,11 +62,11 @@ func CopyDir(src string, dst string, r bool) error {
 				continue
 			}
 
-			if err = CopyDir(srcfp, dstfp, r); err != nil {
+			if err = Dir(srcfp, dstfp, r); err != nil {
 				fmt.Println(err)
 			}
 		} else {
-			if err = CopyFile(srcfp, dstfp); err != nil {
+			if err = File(srcfp, dstfp); err != nil {
 				fmt.Println(err)
 			}
 		}

@@ -1,4 +1,4 @@
-package mirror
+package logger
 
 import (
 	"fmt"
@@ -13,17 +13,9 @@ type Logger struct {
 	*logrus.Logger
 }
 
-type LogFactory func() *logrus.Entry
-
 // Fields type-aliases the logrus.Fields so the package can be skipped within
 // the mirror package
 type Fields = logrus.Fields
-
-var (
-	// L is a global logger that can be reconfigured by third parties
-	// to customize logging
-	L = &Logger{logrus.New()}
-)
 
 // init instruments third party libraries to work in default
 // settings when running mirror code or its bundling extension
@@ -49,3 +41,9 @@ func (l *Logger) Method(obj, method string) *logrus.Entry {
 
 	return l.WithFields(ff)
 }
+
+var (
+	// L is a global logger that can be reconfigured by third parties
+	// to customize logging
+	L = &Logger{logrus.New()}
+)

@@ -1,7 +1,7 @@
 package mirror
 
 import (
-	userFixture "github.com/petomalina/mirror/fixtures/user"
+	userFixture "github.com/petomalina/mirror/pkg/bundle/fixtures/user"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -16,7 +16,7 @@ func (s *StructSuite) TestReflectStruct() {
 		&s.Suite,
 		expectedReflection{
 			name: "User",
-			pkg:  "github.com/petomalina/mirror/fixtures/user",
+			pkg:  "github.com/petomalina/mirror/pkg/bundle/fixtures/user",
 		},
 		ReflectStruct(userFixture.XUser),
 	)

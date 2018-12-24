@@ -5,6 +5,8 @@ import (
 	"golang.org/x/tools/go/packages"
 	"os"
 	"testing"
+
+	. "github.com/petomalina/mirror/pkg/logger"
 )
 
 type StructIntegrationSuite struct {
@@ -36,7 +38,7 @@ func (s *StructIntegrationSuite) TestReflectStruct() {
 		},
 	}
 
-	err := b.Run("../fixtures/user", []string{"XUser"}, "", false, false)
+	err := b.Run("./fixtures/user", []string{"XUser"}, "", false, false)
 	s.NoError(err)
 }
 

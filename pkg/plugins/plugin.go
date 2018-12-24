@@ -1,20 +1,28 @@
-package bundle
+package plugins
 
 import (
 	"fmt"
+	"golang.org/x/tools/go/packages"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
 	"plugin"
 	"reflect"
+	"regexp"
 	"unsafe"
+
+	. "github.com/petomalina/mirror/pkg/logger"
 )
 
-// BuildPlugin builds the given package into plugin and saves it in
+var (
+	pkgRegex = regexp.MustCompile(`(?m:^package (?P<pkg>\w+$))`)
+)
+
+// Build builds the given package into plugin and saves it in
 // current path under a random name .so, returning the name to the caller
-func BuildPlugin(pkg string) (string, error) {
-	L.Method("Internal/plugin", "BuildPlugin").Trace("Invoked with pkg: ", pkg)
+func Build(pkg string) (string, error) {
+	L.Method("Internal/plugin", "Build").Trace("Invoked with pkg: ", pkg)
 	// random file name so we'll get unique loader each time
 	uniq := rand.Int()
 
@@ -32,11 +40,11 @@ func BuildPlugin(pkg string) (string, error) {
 	return objPath, err
 }
 
-// LoadPluginSymbols accepts a plugin path and returns all symbols
+// LoadSymbols accepts a plugin path and returns all symbols
 // that were found in the given plugin.
 // If * is provided as only value in `symbols`, all symbols from the
 // given plugin will be returned
-func LoadPluginSymbols(pluginPath string, symbols []string) ([]interface{}, error) {
+func LoadSymbols(pluginPath string, symbols []string) ([]interface{}, error) {
 	p, err := plugin.Open(pluginPath)
 	if err != nil {
 		return nil, err
@@ -44,7 +52,7 @@ func LoadPluginSymbols(pluginPath string, symbols []string) ([]interface{}, erro
 
 	// special case - load all exported symbols from the file
 	if len(symbols) == 1 && symbols[0] == "all" {
-		L.Method("Internal/plugin", "LoadPluginSymbols").Trace("Got 'all' option, finding symbols")
+		L.Method("Internal/plugin", "LoadSymbols").Trace("Got 'all' option, finding symbols")
 		// clear the symbols array so it doesn't contain the *
 		symbols = []string{}
 
@@ -59,7 +67,7 @@ func LoadPluginSymbols(pluginPath string, symbols []string) ([]interface{}, erro
 		}
 	}
 
-	L.Method("Internal/plugin", "LoadPluginSymbols").Trace("Looking up symbols: ", symbols)
+	L.Method("Internal/plugin", "LoadSymbols").Trace("Looking up symbols: ", symbols)
 	// add model symbols that were loaded from the built plugin
 	models := []interface{}{}
 	for _, symName := range symbols {
@@ -79,7 +87,7 @@ func LoadPluginSymbols(pluginPath string, symbols []string) ([]interface{}, erro
 // `run` function and changing it back to the default
 func WithChangedPackage(pkgName, desiredPkgName string, run func() error) error {
 	L.Method("Internal/package", "WithChangedPackage").Trace("Invoked on pkgName: ", pkgName)
-	pkg, err := findPackage(pkgName)
+	pkg, err := FindPackage(pkgName)
 	if err != nil {
 		return err
 	}
@@ -107,4 +115,18 @@ func WithChangedPackage(pkgName, desiredPkgName string, run func() error) error 
 
 	L.Method("Internal/package", "WithChangedPackage").Trace("Running the enclosed function")
 	return run()
+}
+
+// FindPackage returns names of go files in the targeted package
+func FindPackage(pkg string) (*packages.Package, error) {
+	cfg := &packages.Config{
+		Mode:  packages.LoadFiles,
+		Tests: false,
+	}
+	pkgs, err := packages.Load(cfg, pkg)
+	if err != nil {
+		return nil, err
+	}
+
+	return pkgs[0], nil
 }

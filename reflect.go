@@ -5,9 +5,14 @@ import (
 	"strings"
 )
 
+// Struct is a wrapper for the runtime symbol Ref
 type Struct struct {
 	Ref interface{}
 }
+
+type StructFunc func(s *Struct) error
+
+var a StructFunc
 
 // ReflectStruct creates a mirror Struct that enables users
 // to use mirror-enhanced reflections

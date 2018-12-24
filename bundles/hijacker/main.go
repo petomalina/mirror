@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"github.com/petomalina/mirror"
-	"github.com/petomalina/mirror/bundle"
 	"golang.org/x/tools/go/packages"
 	"html/template"
 	"io/ioutil"
@@ -39,11 +38,7 @@ type FieldTemplateData struct {
 }
 
 func main() {
-	b := &bundle.Bundle{
-		RunFunc: ProcessModel,
-	}
-
-	if err := b.RunDefaultApp("mirror-hijacker"); err != nil {
+	if err := mirror.RunDefaultApp("mirror-hijacker", ProcessModel); err != nil {
 		log.Fatal(err)
 	}
 }
