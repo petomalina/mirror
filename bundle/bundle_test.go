@@ -2,6 +2,7 @@ package bundle
 
 import (
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/tools/go/packages"
 	"os"
 	"testing"
 )
@@ -28,7 +29,7 @@ func (s *StructIntegrationSuite) TearDownTest() {
 // TODO: this integration test should be moved into the bundle package
 func (s *StructIntegrationSuite) TestReflectStruct() {
 	b := Bundle{
-		RunFunc: func(out string, models []interface{}) error {
+		RunFunc: func(out string, models []interface{}, pkg *packages.Package) error {
 			s.Len(models, 1)
 
 			return nil

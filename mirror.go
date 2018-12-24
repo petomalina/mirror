@@ -32,7 +32,7 @@ func ReflectStructs(ss ...interface{}) []*Struct {
 // Note that this does not return pointer type asterixes nor
 // package names
 func (s *Struct) Name() string {
-	name := reflect.TypeOf(s.Ref).String()
+	name := reflect.TypeOf(s.Ref).Elem().String()
 
 	// strip the package prefix, as we don't want it explicitly in the name
 	pkgStrip := strings.Split(name, ".")
