@@ -6,13 +6,19 @@ import "os"
 type Loader struct {
 	// TargetPath is a relative path to the plugin that should be built
 	TargetPath string
+
 	// PreserveCache determines if the copied cached files should be preserved
 	// at the end of the lifecycle
 	PreserveCache bool
+
 	// GenerateSymbols automatically generates symbols for desired types,
 	// e.g. type User struct {} will have his var XUser User generated
 	// in case it is passed into symbolNames for Load function
 	GenerateSymbols bool
+
+	// CacheDir can be used to override the default setting of the cache directory
+	// if not set, this will default to the DefaultCache
+	CacheDir string
 }
 
 func (l *Loader) Load(symbolNames []string) ([]interface{}, error) {

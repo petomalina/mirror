@@ -2,7 +2,7 @@ package pkg
 
 import (
 	"github.com/petomalina/mirror"
-	"github.com/petomalina/mirror/pkg/bundle/fixtures/user"
+	"github.com/petomalina/mirror/pkg/plugins/fixtures/user"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )

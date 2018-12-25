@@ -1,7 +1,7 @@
 package mirror
 
 import (
-	userFixture "github.com/petomalina/mirror/pkg/bundle/fixtures/user"
+	userFixture "github.com/petomalina/mirror/pkg/plugins/fixtures/user"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
