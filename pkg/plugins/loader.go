@@ -1,6 +1,10 @@
 package plugins
 
-import "os"
+import (
+	"github.com/fsnotify/fsnotify"
+	"os"
+	"time"
+)
 
 // Loader encapsulates full lifecycle of a plugin
 type Loader struct {
@@ -59,6 +63,95 @@ func (l *Loader) Load(symbolNames []string) ([]interface{}, error) {
 	return syms, os.RemoveAll(cacheTargetPath)
 }
 
-func (l *Loader) Watch(symbolnames []string) (chan<- []interface{}, error) {
-	return nil, nil
+// Watch watches for changes in the given plugin and emits new symbols
+// on changes
+func (l *Loader) Watch(symbolNames []string, done <-chan bool) (chan<- []interface{}, chan<- error) {
+	out := make(chan []interface{})
+	errOut := make(chan error)
+
+	go func(symbolNames []string, out chan []interface{}, done <-chan bool, errs chan error) {
+		defer func() {
+			close(out)
+			close(errs)
+		}()
+
+		// initialize the watcher with the plugin path
+		watcher, err := fsnotify.NewWatcher()
+		if err != nil {
+			errs <- err
+			return
+		}
+		err = watcher.Add(l.TargetPath)
+		if err != nil {
+			errs <- err
+			return
+		}
+
+		// create a debounce channel so we will only trigger once for multiple changes
+		// this is closed automatically by the debouncer when we close the watcher.Events
+		events := eventDebounce(time.Millisecond*300, watcher.Events)
+
+	eventLoop:
+		for {
+			select {
+			// look for events on the filesystem
+			case _, ok := <-events:
+				if !ok {
+					break eventLoop
+				}
+
+				syms, err := l.Load(symbolNames)
+				if err != nil {
+					errs <- err
+				}
+
+				// distribute the symbols loaded from the plugin
+				out <- syms
+
+				// errors can be handled gracefully and should be proxied to the
+				// caller, they can then use `done` channel to stop the execution
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					break eventLoop
+				}
+				if err != nil {
+					errs <- err
+				}
+
+			case <-done:
+				break eventLoop
+
+			}
+		}
+
+		err = watcher.Close()
+		if err != nil {
+			errs <- err
+		}
+	}(symbolNames, out, done, errOut)
+
+	return out, nil
+}
+
+func eventDebounce(interval time.Duration, input <-chan fsnotify.Event) <-chan fsnotify.Event {
+	out := make(chan fsnotify.Event)
+
+	go func(interval time.Duration, in <-chan fsnotify.Event, out chan fsnotify.Event) {
+		var ev fsnotify.Event
+		for {
+			select {
+			case item, ok := <-input:
+				// if we close the input, we'll just close the output as well
+				if !ok {
+					close(out)
+					return
+				}
+				ev = item
+			case <-time.After(interval):
+				out <- ev
+			}
+		}
+	}(interval, input, out)
+
+	return out
 }

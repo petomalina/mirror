@@ -12,10 +12,10 @@ import (
 )
 
 // RunFunc is a callback that will be called when the app bootstrap finishes
-type RunFunc func(StructSlice, *Out, *packages.Package) error
+type RunFunc func(StructSlice, *Writer, *packages.Package) error
 
-// Out is an alias for the underlying bundle.Out type, hidden with its implementation details
-type Out = bundle.Out
+// Writer is an alias for the underlying bundle.Writer type, hidden with its implementation details
+type Writer = bundle.Writer
 
 // CreateDefaultApp returns default flag configuration for bundled apps
 func CreateDefaultApp(name string, runFunc RunFunc) *cli.App {
@@ -101,7 +101,7 @@ func CreateDefaultApp(name string, runFunc RunFunc) *cli.App {
 			ReflectStructs(symbols...).Each(func(s *Struct) {
 				s.OriginalPackage = pkg.PkgPath
 			}),
-			bundle.NewOut(c.String("out")),
+			bundle.NewWriter(c.String("out")),
 			pkg,
 		)
 	}

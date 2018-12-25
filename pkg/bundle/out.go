@@ -9,16 +9,16 @@ import (
 	"text/template"
 )
 
-// Out is an encapsulation of methods used to write to the output directory
+// Writer is an encapsulation of methods used to write to the output directory
 // which must represent the package
-type Out struct {
+type Writer struct {
 	pkgPath string
 	Files   map[string]*File
 }
 
-// NewOut creates a new Out wrapper
-func NewOut(pkgPath string) *Out {
-	return &Out{
+// NewWriter creates a new Writer wrapper
+func NewWriter(pkgPath string) *Writer {
+	return &Writer{
 		pkgPath: pkgPath,
 
 		Files: make(map[string]*File),
@@ -26,7 +26,7 @@ func NewOut(pkgPath string) *Out {
 }
 
 // File returns an existing file reference or creates a new one which can be manipulated
-func (o *Out) File(name string) *File {
+func (o *Writer) File(name string) *File {
 	if f, ok := o.Files[name]; ok {
 		return f
 	}

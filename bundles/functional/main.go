@@ -54,7 +54,7 @@ type templateData struct {
 	TypeName string
 }
 
-func ProcessModel(models mirror.StructSlice, out *mirror.Out, _ *packages.Package) error {
+func ProcessModel(models mirror.StructSlice, out *mirror.Writer, _ *packages.Package) error {
 	temp := out.File("functional.go")
 
 	for _, rs := range models {

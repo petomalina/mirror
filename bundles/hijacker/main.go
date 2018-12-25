@@ -39,7 +39,7 @@ func main() {
 	}
 }
 
-func ProcessModel(models mirror.StructSlice, out *mirror.Out, pkg *packages.Package) error {
+func ProcessModel(models mirror.StructSlice, out *mirror.Writer, pkg *packages.Package) error {
 	temp := out.File("hijacker.go")
 	temp.Imports = models.PkgPaths()
 
