@@ -65,7 +65,7 @@ func (l *Loader) Load(symbolNames []string) ([]interface{}, error) {
 
 // Watch watches for changes in the given plugin and emits new symbols
 // on changes
-func (l *Loader) Watch(symbolNames []string, done <-chan bool) (chan<- []interface{}, chan<- error) {
+func (l *Loader) Watch(symbolNames []string, done <-chan bool) (<-chan []interface{}, <-chan error) {
 	out := make(chan []interface{})
 	errOut := make(chan error)
 
@@ -130,7 +130,7 @@ func (l *Loader) Watch(symbolNames []string, done <-chan bool) (chan<- []interfa
 		}
 	}(symbolNames, out, done, errOut)
 
-	return out, nil
+	return out, errOut
 }
 
 func eventDebounce(interval time.Duration, input <-chan fsnotify.Event) <-chan fsnotify.Event {

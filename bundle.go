@@ -3,10 +3,13 @@ package mirror
 import (
 	"errors"
 	"github.com/petomalina/mirror/pkg/bundle"
+	"github.com/petomalina/mirror/pkg/plugins"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"golang.org/x/tools/go/packages"
 	"os"
+	"os/signal"
+	"syscall"
 
 	. "github.com/petomalina/mirror/pkg/logger"
 )
@@ -57,6 +60,10 @@ func CreateDefaultApp(name string, runFunc RunFunc) *cli.App {
 			Name:  "preserveCache, c",
 			Usage: "(experimental) Preserves the cache after the build for further examination",
 		},
+		cli.BoolFlag{
+			Name:  "watch, w",
+			Usage: "(experimental) Watches for file changes in the input directory and triggers the generator",
+		},
 	}
 	app.Action = func(c *cli.Context) error {
 		logLevel, err := logrus.ParseLevel(c.String("verbosity"))
@@ -79,31 +86,86 @@ func CreateDefaultApp(name string, runFunc RunFunc) *cli.App {
 			}
 		}
 
-		// create the internal bundle that will be run
-		b := bundle.Bundle{}
-
-		symbols, pkg, err := b.Run(
-			c.String("pkg"),
-			c.StringSlice("models"),
-			bundle.RunOptions{
-				GenerateSymbols: c.Bool("generateSymbols"),
-				PreserveCache:   c.Bool("preserveCache"),
-			},
-		)
-
+		pkg, err := plugins.FindPackage(c.String("pkg"))
 		if err != nil {
-			L.
-				Method("Bundle", "CreateDefaultApp").
-				Errorln("An error occurred when running the generator: ", err.Error())
+			return err
 		}
 
-		return runFunc(
-			ReflectStructs(symbols...).Each(func(s *Struct) {
-				s.OriginalPackage = pkg.PkgPath
-			}),
-			bundle.NewWriter(c.String("out")),
-			pkg,
-		)
+		loader := plugins.Loader{
+			TargetPath:      c.String("pkg"),
+			GenerateSymbols: c.Bool("generateSymbols"),
+			PreserveCache:   c.Bool("preserveCache"),
+		}
+
+		// one-shot load
+		if !c.Bool("watch") {
+			models, err := loader.Load(c.StringSlice("models"))
+
+			if err != nil {
+				L.
+					Method("Bundle", "CreateDefaultApp").
+					Errorln("An error occurred when running the generator: ", err.Error())
+			}
+
+			return runFunc(
+				ReflectStructs(models...).Each(func(s *Struct) {
+					s.OriginalPackage = pkg.PkgPath
+				}),
+				bundle.NewWriter(c.String("out")),
+				pkg,
+			)
+		} else { // watch for changes
+			done := make(chan bool)
+			modelsChan, errChan := loader.Watch(c.StringSlice("models"), done)
+
+			// create a channel for notifications from the console
+			sigs := make(chan os.Signal, 1)
+			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+			L.
+				Method("Bundle", "CreateDefaultApp").
+				Info("Starting fsnotify to watch and rebuild")
+
+		watchLoop:
+			for {
+				select {
+				case models, ok := <-modelsChan:
+					if !ok {
+						break watchLoop
+					}
+
+					err := runFunc(
+						ReflectStructs(models...).Each(func(s *Struct) {
+							s.OriginalPackage = pkg.PkgPath
+						}),
+						bundle.NewWriter(c.String("out")),
+						pkg,
+					)
+
+					if err != nil {
+						L.
+							Method("Bundle", "CreateDefaultApp").
+							Errorln("An error occurred when running the generator: ", err.Error())
+
+						done <- true
+						return err
+					}
+
+				case err := <-errChan:
+					done <- true
+					return err
+
+				case <-sigs:
+					L.
+						Method("Bundle", "CreateDefaultApp").
+						Infoln("Captured exit signal, signaling watcher to stop")
+					// signal the watcher to stop watching for changes
+					done <- true
+				}
+			}
+		}
+
+		return nil
 	}
 
 	return app

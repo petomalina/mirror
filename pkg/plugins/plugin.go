@@ -93,7 +93,6 @@ func WithChangedPackage(pkgName, desiredPkgName string, run func() error) error 
 	if err != nil {
 		return err
 	}
-	L.Method("Internal/package", "WithChangedPackage").Trace("Listed package: ", pkg)
 
 	// replace all package directives to the desired package names
 	for _, f := range pkg.GoFiles {
@@ -115,7 +114,6 @@ func WithChangedPackage(pkgName, desiredPkgName string, run func() error) error 
 		}
 	}
 
-	L.Method("Internal/package", "WithChangedPackage").Trace("Running the enclosed function")
 	return run()
 }
 
