@@ -2,8 +2,17 @@ package plugins
 
 import (
 	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 	"os"
 	"time"
+)
+
+var (
+	ErrFindPackageFailed      = errors.New("An error occurred when loading plugin")
+	ErrCopyingToCacheFailed   = errors.New("Failed to copy package to the cache")
+	ErrSymbolGenerationFailed = errors.New("Failed to generate symbols")
+	ErrBuildFailed            = errors.New("Failed to build the plugin")
+	ErrSymbolLoadFailed       = errors.New("Failed to load symbols from the plugin")
 )
 
 // Loader encapsulates full lifecycle of a plugin
@@ -28,31 +37,36 @@ type Loader struct {
 func (l *Loader) Load(symbolNames []string) ([]interface{}, error) {
 	pkg, err := FindPackage(l.TargetPath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(ErrFindPackageFailed, err.Error())
 	}
 
 	// copy everything into the cache so we can manipulate it further and avoid caching
-	cacheTargetPath, err := CopyPackageToCache(pkg, DefaultCache)
+	cacheDir := DefaultCache
+	if l.CacheDir != "" {
+		cacheDir = l.CacheDir
+	}
+
+	cacheTargetPath, err := CopyPackageToCache(pkg, cacheDir)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(ErrCopyingToCacheFailed, err.Error())
 	}
 
 	// generate symbols and accept new symbol names
 	if l.GenerateSymbols {
 		symbolNames, err = GenerateSymbolsForModels(symbolNames, cacheTargetPath)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(ErrSymbolGenerationFailed, err.Error())
 		}
 	}
 
 	so, err := Build(cacheTargetPath, cacheTargetPath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(ErrBuildFailed, err.Error())
 	}
 
 	syms, err := LoadSymbols(so, symbolNames)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(ErrSymbolLoadFailed, err.Error())
 	}
 
 	// don't do cleanup if we want to preserve the cache, just return
