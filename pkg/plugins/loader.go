@@ -101,8 +101,9 @@ func (l *Loader) Watch(symbolNames []string, done <-chan bool) (<-chan []interfa
 			return
 		}
 
-		// create a debounce channel so we will only trigger once for multiple changes
-		// this is closed automatically by the debouncer when we close the watcher.Events
+		// create a debounce channel so we will only triggerChange once for multiple changes
+		// this is closed automatically by the debouncer when new value is returned, so it must be
+		// renewed when new value should be accepted
 		events := eventDebounce(time.Millisecond*300, watcher.Events)
 
 	eventLoop:
@@ -110,9 +111,13 @@ func (l *Loader) Watch(symbolNames []string, done <-chan bool) (<-chan []interfa
 			select {
 			// look for events on the filesystem
 			case _, ok := <-events:
+				// this will break only when we renew the debouncer and the watcher is closed
 				if !ok {
 					break eventLoop
 				}
+
+				// renew the debouncer for the new value
+				events = eventDebounce(time.Millisecond*300, watcher.Events)
 
 				syms, err := l.Load(symbolNames)
 				if err != nil {
@@ -147,22 +152,34 @@ func (l *Loader) Watch(symbolNames []string, done <-chan bool) (<-chan []interfa
 	return out, errOut
 }
 
+// eventDebounce creates a new debouncer that will be closed once the value is returned
 func eventDebounce(interval time.Duration, input <-chan fsnotify.Event) <-chan fsnotify.Event {
 	out := make(chan fsnotify.Event)
 
 	go func(interval time.Duration, in <-chan fsnotify.Event, out chan fsnotify.Event) {
 		var ev fsnotify.Event
+		defer func() {
+			close(out)
+		}()
+
+		// first iteration out of the after interval, so we will not loop in the time.After without value
+		item, ok := <-input
+		if !ok {
+			return
+		}
+		ev = item
+
 		for {
 			select {
 			case item, ok := <-input:
 				// if we close the input, we'll just close the output as well
 				if !ok {
-					close(out)
 					return
 				}
 				ev = item
 			case <-time.After(interval):
 				out <- ev
+				return
 			}
 		}
 	}(interval, input, out)
