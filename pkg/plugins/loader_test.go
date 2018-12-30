@@ -156,13 +156,22 @@ func (s *LoaderSuite) TestWatch() {
 			triggerChange:    true,
 		},
 		{
-			name: "Watch for errors within ./fixtures/usernosymbol without generating (triggered)",
+			name: "Get errors within ./fixtures/usernosymbol without generating (triggered)",
 			loader: &Loader{
 				TargetPath: "./fixtures/usernosymbol",
 			},
 			symbols:       []string{"XUser"},
 			triggerChange: true,
 			errs:          []error{ErrSymbolLoadFailed},
+		},
+		{
+			name: "Get error when copying to root from ./fixtures/usernosymbol",
+			loader: &Loader{
+				TargetPath: "./fixtures/usernosymbol",
+				CacheDir:   "/.mirror",
+			},
+			errs:          []error{ErrCopyingToCacheFailed},
+			triggerChange: true,
 		},
 	}
 
