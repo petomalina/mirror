@@ -83,23 +83,23 @@ func (l *Loader) Watch(symbolNames []string, done <-chan bool) (<-chan []interfa
 	out := make(chan []interface{})
 	errOut := make(chan error)
 
-	go func(symbolNames []string, out chan []interface{}, done <-chan bool, errs chan error) {
+	// initialize the watcher with the plugin path
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		errOut <- err
+		return out, errOut
+	}
+	err = watcher.Add(l.TargetPath)
+	if err != nil {
+		errOut <- err
+		return out, errOut
+	}
+
+	go func(watcher *fsnotify.Watcher, symbolNames []string, out chan []interface{}, done <-chan bool, errs chan error) {
 		defer func() {
 			close(out)
 			close(errs)
 		}()
-
-		// initialize the watcher with the plugin path
-		watcher, err := fsnotify.NewWatcher()
-		if err != nil {
-			errs <- err
-			return
-		}
-		err = watcher.Add(l.TargetPath)
-		if err != nil {
-			errs <- err
-			return
-		}
 
 		// create a debounce channel so we will only triggerChange once for multiple changes
 		// this is closed automatically by the debouncer when new value is returned, so it must be
@@ -122,6 +122,7 @@ func (l *Loader) Watch(symbolNames []string, done <-chan bool) (<-chan []interfa
 				syms, err := l.Load(symbolNames)
 				if err != nil {
 					errs <- err
+					break
 				}
 
 				// distribute the symbols loaded from the plugin
@@ -138,16 +139,15 @@ func (l *Loader) Watch(symbolNames []string, done <-chan bool) (<-chan []interfa
 				}
 
 			case <-done:
+				err = watcher.Close()
+				if err != nil {
+					errs <- err
+				}
 				break eventLoop
 
 			}
 		}
-
-		err = watcher.Close()
-		if err != nil {
-			errs <- err
-		}
-	}(symbolNames, out, done, errOut)
+	}(watcher, symbolNames, out, done, errOut)
 
 	return out, errOut
 }

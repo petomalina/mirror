@@ -26,6 +26,7 @@ type LoaderCandidate struct {
 }
 
 type WatchCandidate struct {
+	name    string
 	loader  *Loader
 	symbols []string
 
@@ -114,6 +115,8 @@ func (s *LoaderSuite) TestLoad() {
 	}
 
 	for _, c := range candidates {
+		fmt.Println("Running test case:", c.name)
+
 		model, err := c.loader.Load(c.symbols)
 
 		s.EqualValues(c.err, errors.Cause(err))
@@ -137,12 +140,14 @@ func (s *LoaderSuite) TestLoad() {
 func (s *LoaderSuite) TestWatch() {
 	candidates := []WatchCandidate{
 		{
+			name: "Watch only done for created symbols in ./fixtures/user",
 			loader: &Loader{
 				TargetPath: "./fixtures/user",
 			},
 			symbols: []string{"XUser"},
 		},
 		{
+			name: "Watch already created symbols in ./fixtures/user (triggered)",
 			loader: &Loader{
 				TargetPath: "./fixtures/user",
 			},
@@ -150,9 +155,20 @@ func (s *LoaderSuite) TestWatch() {
 			loadedSymbolsLen: 1,
 			triggerChange:    true,
 		},
+		{
+			name: "Watch for errors within ./fixtures/usernosymbol without generating (triggered)",
+			loader: &Loader{
+				TargetPath: "./fixtures/usernosymbol",
+			},
+			symbols:       []string{"XUser"},
+			triggerChange: true,
+			errs:          []error{ErrSymbolLoadFailed},
+		},
 	}
 
 	for _, c := range candidates {
+		fmt.Println("Running test case:", c.name)
+
 		done := make(chan bool)
 		modelsChan, errChan := c.loader.Watch(c.symbols, done)
 
@@ -168,7 +184,7 @@ func (s *LoaderSuite) TestWatch() {
 
 		// setup helper for expected number of triggers so we can break the channels
 		expectedModelTriggersCount := 0
-		if c.triggerChange {
+		if c.triggerChange && len(c.errs) == 0 {
 			expectedModelTriggersCount = 1
 		}
 
@@ -188,7 +204,7 @@ func (s *LoaderSuite) TestWatch() {
 					break
 				}
 
-				s.EqualValues(c.errs[errTriggerCounter], err)
+				s.EqualValues(c.errs[errTriggerCounter], errors.Cause(err))
 				errTriggerCounter++
 			case syms, ok := <-modelsChan:
 				if !ok {
