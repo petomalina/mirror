@@ -60,6 +60,14 @@ func (s *LoaderSuite) TestLoad() {
 			len:     1,
 		},
 		{
+			name: "Load already created symbols using 'all' from ./fixtures/user",
+			loader: &Loader{
+				TargetPath: "./fixtures/user",
+			},
+			symbols: []string{"all"},
+			len:     1,
+		},
+		{
 			name: "Generate symbols for ./fixtures/usernosymbol",
 			loader: &Loader{
 				TargetPath:      "./fixtures/usernosymbol",
