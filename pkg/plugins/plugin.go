@@ -32,14 +32,17 @@ func Build(pkg string, out string) (string, error) {
 	L.Method("Bundle", "Run").Trace("Object path: ", objPath)
 
 	// create the plugin from the passed package
-	err := WithChangedPackage(pkg, "main", func() error {
-		cmd := exec.Command("go", "build", "-buildmode=plugin", "-o="+objPath, pkg)
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		return cmd.Run()
-	})
+	err := ChangePackage(pkg, "main")
+	if err != nil {
+		return objPath, err
+	}
 
-	return objPath, err
+	// create the command to execute the build
+	cmd := exec.Command("go", "build", "-buildmode=plugin", "-o="+objPath, pkg)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+
+	return objPath, cmd.Run()
 }
 
 // LoadSymbols accepts a plugin path and returns all symbols
@@ -84,11 +87,11 @@ func LoadSymbols(pluginPath string, symbols []string) ([]interface{}, error) {
 	return models, nil
 }
 
-// WithChangedPackage changes the `package X` line of each file in the
+// ChangePackage changes the `package X` line of each file in the
 // targeted package, changing its name to the desiredPkgName, running the
 // `run` function and changing it back to the default
-func WithChangedPackage(pkgName, desiredPkgName string, run func() error) error {
-	L.Method("Internal/package", "WithChangedPackage").Trace("Invoked on pkgName: ", pkgName)
+func ChangePackage(pkgName, desiredPkgName string) error {
+	L.Method("Internal/package", "ChangePackage").Trace("Invoked on pkgName: ", pkgName)
 	pkg, err := FindPackage(pkgName)
 	if err != nil {
 		return err
@@ -114,9 +117,12 @@ func WithChangedPackage(pkgName, desiredPkgName string, run func() error) error 
 		}
 	}
 
-	return run()
+	return nil
 }
 
+// GenerateSymbolsForModels generates symbols for all models, mutates
+// the input symbols to be compatible with newly created symbols and
+// writes a new file with these generated symbols
 func GenerateSymbolsForModels(symbolNames []string, out string) ([]string, error) {
 	symbolsFile := filepath.Join(out, fmt.Sprintf("/%d.go", rand.Int()))
 
@@ -142,6 +148,8 @@ var (
 
 const DefaultCache = ".mirror"
 
+// CopyPackageToCache copies a given package into a given cache dir
+// returning the cache dir subdirectory into which the package was copied
 func CopyPackageToCache(pkg *packages.Package, cacheDir string) (string, error) {
 	// Copy the directory so the plugin can be build outside
 	pkgCacheDir, err := filepath.Abs(filepath.Join(cacheDir, fmt.Sprintf("%d", rand.Int())))
