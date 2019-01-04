@@ -4,6 +4,7 @@ import (
 	userFixture "github.com/petomalina/mirror/pkg/plugins/fixtures/user"
 	"github.com/stretchr/testify/suite"
 	"testing"
+	"time"
 )
 
 type StructSuite struct {
@@ -11,7 +12,6 @@ type StructSuite struct {
 }
 
 func (s *StructSuite) TestReflectStruct() {
-
 	AssertReflectedStruct(
 		&s.Suite,
 		expectedReflection{
@@ -30,6 +30,25 @@ type expectedReflection struct {
 func AssertReflectedStruct(s *suite.Suite, ex expectedReflection, ref *Struct) {
 	s.EqualValues(ex.name, ref.Name())
 	s.EqualValues(ex.pkg, ref.PkgPath())
+}
+
+type PkgPathCandidate struct {
+	model   interface{}
+	pkgPath string
+}
+
+func (s *StructSuite) TestPkgPath() {
+	candidates := []PkgPathCandidate{
+		{
+			model:   &time.Time{},
+			pkgPath: "time",
+		},
+	}
+
+	for _, c := range candidates {
+		ref := ReflectStruct(c.model)
+		s.EqualValues(c.pkgPath, ref.PkgPath())
+	}
 }
 
 func (s *StructSuite) TestRawFields() {
