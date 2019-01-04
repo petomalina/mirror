@@ -107,7 +107,7 @@ func (s *LoaderSuite) TestLoad() {
 			preservedCache: true,
 		},
 		{
-			name: "Get error when copying to root from ./fixtures/usernosymbol",
+			name: "Get error when copying to readonly folder from ./fixtures/usernosymbol",
 			loader: &Loader{
 				TargetPath: "./fixtures/usernosymbol",
 				CacheDir:   ReadonlyCacheDir,
@@ -182,7 +182,7 @@ func (s *LoaderSuite) TestWatch() {
 			errs:          []error{ErrSymbolLoadFailed},
 		},
 		{
-			name: "Get error when copying to root from ./fixtures/usernosymbol",
+			name: "Get error when copying to readonly folder from ./fixtures/usernosymbol",
 			loader: &Loader{
 				TargetPath: "./fixtures/usernosymbol",
 				CacheDir:   ReadonlyCacheDir,

@@ -1,8 +1,5 @@
 language: go
 
-# require sudo for root so we can test the copying capabilities
-sudo: required
-
 go:
   - "1.11.x"
   - "1.12.x"
