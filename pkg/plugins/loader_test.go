@@ -36,11 +36,20 @@ type WatchCandidate struct {
 }
 
 const (
-	TestCacheDir = ".testmirror"
+	TestCacheDir     = ".testmirror"
+	ReadonlyCacheDir = ".testmirror-readonly"
 )
+
+func (s *LoaderSuite) SetupTest() {
+	s.NoError(os.Mkdir(ReadonlyCacheDir, 0400))
+}
 
 func (s *LoaderSuite) TearDownTest() {
 	s.CleanupCacheDirs()
+
+	// clean the readonly cache after the test as we won't
+	// shouldn't be able to copy anything to that folder anyway
+	s.NoError(os.Remove(ReadonlyCacheDir))
 }
 
 func (s *LoaderSuite) CleanupCacheDirs() {
@@ -101,7 +110,7 @@ func (s *LoaderSuite) TestLoad() {
 			name: "Get error when copying to root from ./fixtures/usernosymbol",
 			loader: &Loader{
 				TargetPath: "./fixtures/usernosymbol",
-				CacheDir:   "/.mirror",
+				CacheDir:   ReadonlyCacheDir,
 			},
 			err: ErrCopyingToCacheFailed,
 		},
@@ -176,7 +185,7 @@ func (s *LoaderSuite) TestWatch() {
 			name: "Get error when copying to root from ./fixtures/usernosymbol",
 			loader: &Loader{
 				TargetPath: "./fixtures/usernosymbol",
-				CacheDir:   "/.mirror",
+				CacheDir:   ReadonlyCacheDir,
 			},
 			errs:          []error{ErrCopyingToCacheFailed},
 			triggerChange: true,
